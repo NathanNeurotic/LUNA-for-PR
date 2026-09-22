@@ -1,4 +1,4 @@
-# LUNA
+
 
 <p align="center">
   <img src="assets/luna-logo.svg" alt="LUNA logo" width="700">
@@ -14,92 +14,144 @@ The current configuration is designed for an FMCB-hosted frontend and Neutrino
 runtime with games, artwork, and writable library state on an internal
 ATA/exFAT hard drive.
 
-> **Project status:** this repository is a local release-staging tree. No public
-> release, hosted binary, or release version is implied yet.
 
 ## Requirements
 
-- **Compatible PlayStation 2:** the packaged setup targets a PS2 that can run
-  Free McBoot and expose an internal DEV9/ATA hard drive. LUNA does not yet
-  publish a complete model-by-model compatibility matrix; console revision,
-  adapter, bridge, and hard-drive compatibility can affect results.
-- **FMCB memory card:** a working Free McBoot installation with enough space
-  for the LUNA application. The packaged configuration uses slot 1 (`mc0:`).
-- **Internal ATA/exFAT drive:** an internal hard drive presented through DEV9,
-  with an MBR- or GPT-formatted drive containing an exFAT partition. The
-  supplied configuration uses `mode: ata`.
-- **Network adapter or HDD bridge:** a PS2-compatible network adapter and
-  SATA/IDE bridge that reliably exposes the internal drive through the ATA
-  backend. There is no universal adapter/bridge compatibility list; validate
-  unfamiliar hardware before relying on it for regular use.
-- **Artwork format:** artwork is optional and is not required to launch an
-  ISO. For the complete library presentation, use title-ID-matched PNG files:
-  140x200 covers, optional transparent disc labels, and optional 256x256
-  square PSBBN artwork. Use
+- **Compatible PlayStation 2:** currently only supports fat PS2s'
+- **FMCB memory card:** with enough space for the LUNA application.
+- **Internal ATA/exFAT drive:** an internal drive with an MBR- or GPT-formatted drive containing an exFAT partition. HDD and SDD are both supported.
+- **Network adapter or HDD bridge:** all hardware testing was done with a GameStar PS2 SATA HDD Adapter.
+- **Artwork:** artwork is optional and is not required to launch an
+  ISO. For the complete library presentation use
   [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
-  to obtain the PSBBN artwork. The exact filenames are shown in
-  [Artwork layout](#artwork-layout).
+  to prepare the drive and obtain the PSBBN artwork.
 
 ## Installation
 
-The supported hardware setup runs LUNA and Neutrino from a Free McBoot (FMCB)
-memory card in slot 1 while games, artwork, and writable library state remain
-on the internal ATA/exFAT hard drive.
+These steps assume you already have a working FMCB memory card, a PS2
+controller, and a USB flash drive that your PS2 can read. LUNA is copied to the
+memory card; your games and artwork stay on the internal hard drive.
 
-1. Back up the FMCB memory card and the target hard drive.
-2. Obtain the packaged `LUNA-FMCB-mc0.zip` archive and extract its
-   `APP_LUNA` directory.
-3. Copy `APP_LUNA` to the root of the FMCB memory card and rename the copied
-   directory to `LUNA` if necessary. Confirm these paths exist:
+### 1. Put LUNA on the USB drive
+
+1. On your computer, download the `LUNA-FMCB-mc0.zip` file.
+2. Open the ZIP file and choose **Extract** or **Extract all**. Open the
+   extracted folders until you can see a folder named `APP_LUNA`.
+3. Plug the USB flash drive into your computer. Open the USB drive and copy
+   the entire `APP_LUNA` folder to the USB drive's main screen. Do not copy
+   only `luna.elf`; LUNA needs the files and folders inside `APP_LUNA` too.
+4. Before removing the USB drive, check that the file is located here:
 
    ```text
-   mc0:/LUNA/luna.elf
-   mc0:/LUNA/luna.yaml
-   mc0:/LUNA/neutrino.elf
-   mc0:/LUNA/config/
-   mc0:/LUNA/modules/
+   USB:/APP_LUNA/luna.elf
    ```
 
-4. In the Free McBoot Configurator, add a menu item named `LUNA` with the path
-   `mc0:/LUNA/luna.elf`, then save the FMCB configuration.
-5. Keep the game drive’s existing ISO and artwork layout. The packaged
-   configuration uses `mode: ata`; do not copy `ART`, Favorites, cache, or
-   options files to the memory card.
+   Leave the folder named `APP_LUNA`. Do not rename it.
 
-Launch **LUNA** from the FMCB menu. For a card installed in slot 2, change the
-FMCB path and `return_path` in `luna.yaml` from `mc0:` to `mc1:`. See
+### 2. Copy LUNA to the memory card
+
+5. Safely remove the USB drive from the computer and plug it into the PS2.
+6. Turn on the PS2 and wait for the FMCB menu.
+7. Open the **ELF installer** or **file manager** from the FMCB menu. On many
+   FMCB cards this program is called **uLaunchELF** or **wLaunchELF**. This is
+   the program that lets you copy files between the USB drive and memory card.
+8. In the file manager, open `mass:/`. This is usually the USB drive. Find
+   `APP_LUNA`, highlight the folder, and choose **Copy**.
+9. Go back to the device list and open `mc0:/`. This is the memory card in
+   slot 1. Choose **Paste** and wait for the copy to finish.
+10. Check that the memory card now contains these files. The folder name must
+    remain `APP_LUNA`:
+
+   ```text
+   mc0:/APP_LUNA/luna.elf
+   mc0:/APP_LUNA/luna.yaml
+   mc0:/APP_LUNA/neutrino.elf
+   mc0:/APP_LUNA/config/
+   mc0:/APP_LUNA/modules/
+   ```
+
+### 3. Add LUNA to the FMCB menu
+
+11. Return to the FMCB menu and open **FMCB Configurator**.
+12. Choose an empty menu item or application slot. Set the name to `LUNA`.
+13. Set the program path to:
+
+    ```text
+    mc0:/APP_LUNA/luna.elf
+    ```
+
+14. Save the FMCB settings. Return to the main FMCB menu and restart the PS2
+    if the new menu item does not appear immediately.
+15. Select **LUNA** from the FMCB menu. LUNA should start and scan the games
+    on the internal hard drive.
+
+The packaged configuration is for the memory card in slot 1 (`mc0:`). For a
+card installed in slot 2, use `mc1:/APP_LUNA/luna.elf` in the FMCB menu and
+change `return_path` in `luna.yaml` from `mc0:` to `mc1:`.
+
+Do not copy the `ART` folder, game ISOs, Favorites, cache, or options files to
+the memory card. Those files belong on the internal hard drive. If LUNA starts
+but shows no games, follow [Preparing the game drive](#preparing-the-game-drive).
+See
 [FMCB.md](FMCB.md) for the complete memory-card layout and hardware checklist.
 
 ## Preparing the game drive
 
-Prepare the ATA/exFAT drive before launching LUNA for the first time. Keep a
-backup of the drive while testing a new adapter, bridge, or console.
+Prepare the ATA/exFAT drive on a computer before launching LUNA. The easiest
+way is to use [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition).
 
-1. Format or prepare an MBR- or GPT-partitioned drive with an exFAT partition
-   that the PS2's ATA setup can mount. Keep the partition's root available for
-   the game and artwork directories.
-2. Copy game images as `.iso` or `.ISO` files into the drive. They may be in
-   the root or in ordinary folders such as `/DVD/` or `/games/`, up to the
-   scanner's supported directory depth. Human-readable names are fine; LUNA
-   reads the title ID from each ISO and uses that ID to match artwork.
+1. Connect or mount the ATA/exFAT game drive on your computer.
+2. Open **OrbitPS2 Manager — LUNA Edition** and click **Mount Directory** and select your drive
+3. The manager checks for and can create these folders:
 
    ```text
-   /DVD/Example Game.iso
-   /games/Another Game.iso
+   CD/
+   DVD/
+   VCD/
+   POPS/
+   APPS/
+   ART/
+   CFG/
+   VMC/
    ```
 
-   Do not place ISOs inside `/ART/` or other library/system directories that
-   the scanner skips. Keep each image as a complete, valid PS2 ISO.
-3. Create `/ART/` at the root of the game drive and add any optional artwork
-   using the title ID from the ISO. Classic uses OPL-compatible covers and
-   optional disc labels; Collection, Grid, Constellation, and Orbit use the
-   optional square artwork under `/ART/PSBBN/`. Use
-   [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
-   to download and prepare that PSBBN artwork.
-4. If an existing drive already works with OPL, preserve its ISO and artwork
-   layout. LUNA uses the same title-ID conventions for OPL-compatible cover
-   art and does not require commercial game data or artwork to be moved to the
-   FMCB memory card.
+   The manager does not create these folders when it starts. You
+   must click **OK** when the prompt appears. If you cancel it, mount the
+   drive again and accept the folder-creation prompt. Imports can also create
+   the specific folders they need automatically.
+4. Use the manager's **Import** feature instead of manually placing game
+   files:
+
+   - Choose **PS2 DVD** for a PS2 DVD `.iso` or `.zso`; it places the game in
+     `DVD/`.
+   - Choose **PS2 CD** for a PS2 CD image; it converts and places the game in
+     `CD/`.
+   - Let the manager read each disc image to find its title ID. Human-readable
+     game names are fine, and the manager can use the title ID for artwork.
+
+5. Use the manager's artwork tools after importing. OPL-style covers and disc
+   labels go in `ART/`. LUNA's square artwork goes in `ART/PSBBN/`. The
+   manager saves the square artwork using the required
+   `<TITLE_ID>.png` filename.
+6. Check that the drive now looks similar to this:
+
+   ```text
+   /CD/
+   /DVD/Example Game.iso
+   /ART/SLUS_200.02_COV.png
+   /ART/SLUS_200.02_ICO.png
+   /ART/PSBBN/SLUS_200.02.png
+   /CFG/
+   /VMC/
+   ```
+
+7. Safely eject the drive from the computer and return it to the PS2. LUNA
+   will scan the standard OPL folders when it starts. Do not move the game
+   files or artwork to the FMCB memory card.
+
+If an existing drive already works with OPL, preserve its layout and mount its
+root directory in the manager. LUNA uses the same title-ID conventions for
+OPL-compatible cover art.
 
 ### HDL/OPL compatibility
 
@@ -128,7 +180,7 @@ both the NHDDL-derived frontend and the Neutrino-derived game runtime.
 | Artwork | OPL-compatible covers plus optional disc labels and PSBBN-style square artwork, with view-specific caching and GS VRAM recovery. |
 | HDD-focused operation | The library accepts ATA and HDL hard-drive sources only. The shipped configuration uses internal ATA/exFAT and avoids waiting for a nonexistent second mass-storage device. |
 | Safer persistent state | LUNA writes cache, last-title, global options, and per-title settings under `/LUNA`, reads legacy `/nhddl` state as a fallback, bounds stored paths, and replaces key files only after a complete temporary write. |
-| FMCB deployment | The frontend and runtime can live together at `mc0:/LUNA` while each hard drive retains its own artwork, cache, settings, and Favorites. |
+| FMCB deployment | The frontend and runtime can live together at `mc0:/APP_LUNA` while each hard drive retains its own artwork, cache, settings, and Favorites. |
 | In-game return | **Work in progress.** The planned LUNA Neutrino runtime will recognize a held controller combination and return directly to a configured memory-card ELF or through the HDD/browser boot chain. |
 | Return safety | The planned return path will request a coordinated optical/DEV9 shutdown and fail closed if safe shutdown cannot be confirmed. |
 | Physical power button | LUNA adds a dedicated IOP-side safe-shutdown path that preserves the console's normal power-off behavior. Unlike NHDDL, it coordinates DEV9 shutdown before issuing the standard power-off command. |
@@ -174,7 +226,7 @@ Press **Circle** to cycle through **Classic**, **Collection**, **Grid**,
 The in-game return feature is currently a work in progress. Its planned control
 combination is **L1 + L2 + R1 + R2 + Start + Select** held for roughly one
 second; the default FMCB configuration is intended to return to
-`mc0:/LUNA/luna.elf`.
+`mc0:/APP_LUNA/luna.elf`.
 
 ## Artwork layout
 
@@ -200,7 +252,7 @@ The supplied FMCB configuration uses:
 
 ```yaml
 mode: ata
-return_path: mc0:/LUNA/luna.elf
+return_path: mc0:/APP_LUNA/luna.elf
 ```
 
 Writable state stays with the game drive:
