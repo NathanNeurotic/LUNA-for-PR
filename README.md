@@ -46,8 +46,6 @@ memory card; your games and artwork stay on the internal hard drive.
    USB:/APP_LUNA/luna.elf
    ```
 
-   Leave the folder named `APP_LUNA`. Do not rename it.
-
 ### 2. Copy LUNA to the memory card
 
 5. Safely remove the USB drive from the computer and plug it into the PS2.
@@ -88,12 +86,6 @@ memory card; your games and artwork stay on the internal hard drive.
 The packaged configuration is for the memory card in slot 1 (`mc0:`). For a
 card installed in slot 2, use `mc1:/APP_LUNA/luna.elf` in the FMCB menu and
 change `return_path` in `luna.yaml` from `mc0:` to `mc1:`.
-
-Do not copy the `ART` folder, game ISOs, Favorites, cache, or options files to
-the memory card. Those files belong on the internal hard drive. If LUNA starts
-but shows no games, follow [Preparing the game drive](#preparing-the-game-drive).
-See
-[FMCB.md](FMCB.md) for the complete memory-card layout and hardware checklist.
 
 ## Preparing the game drive
 
@@ -181,31 +173,9 @@ both the NHDDL-derived frontend and the Neutrino-derived game runtime.
 | HDD-focused operation | The library accepts ATA and HDL hard-drive sources only. The shipped configuration uses internal ATA/exFAT and avoids waiting for a nonexistent second mass-storage device. |
 | Safer persistent state | LUNA writes cache, last-title, global options, and per-title settings under `/LUNA`, reads legacy `/nhddl` state as a fallback, bounds stored paths, and replaces key files only after a complete temporary write. |
 | FMCB deployment | The frontend and runtime can live together at `mc0:/APP_LUNA` while each hard drive retains its own artwork, cache, settings, and Favorites. |
-| In-game return | **Work in progress.** The planned LUNA Neutrino runtime will recognize a held controller combination and return directly to a configured memory-card ELF or through the HDD/browser boot chain. |
+| In-game return | **Work in progress.** ~~The planned LUNA Neutrino runtime will recognize a held controller combination and return directly to a configured memory-card ELF or through the HDD/browser boot chain.~~ |
 | Return safety | The planned return path will request a coordinated optical/DEV9 shutdown and fail closed if safe shutdown cannot be confirmed. |
 | Physical power button | LUNA adds a dedicated IOP-side safe-shutdown path that preserves the console's normal power-off behavior. Unlike NHDDL, it coordinates DEV9 shutdown before issuing the standard power-off command. |
-
-### Physical power-button shutdown
-
-NHDDL did not provide a coordinated safe-shutdown path for the console's
-physical power button. That distinction matters when a game is using the
-DEV9-connected hard drive: simply resetting or powering off while storage work
-is still active can leave outstanding I/O interrupted.
-
-LUNA keeps the physical button separate from the planned controller-based
-in-game return. The native power event is handled by a priority-1 listener on
-the IOP CD/DVD side, rather than depending on an EE pad hook, a VBlank loop, or
-the running game's controller support. The listener acknowledges the hardware
-event, stops active emulated optical work, asks DEV9 to shut down through its
-normal shutdown callback, and only then issues the standard `sceCdPowerOff`
-command. The power-off path does not require DEV9 to be present, so the front
-panel button continues to behave normally for USB, MX4SIO, and other launch
-paths as well.
-
-This is intentionally a true power-off operation: pressing the physical
-button does not reinterpret the event as an in-game return or reload LUNA.
-The same coordinated shutdown service is also used by the planned return path,
-but the controller-based in-game return remains a work in progress.
 
 ## Library views and controls
 
@@ -223,10 +193,10 @@ Press **Circle** to cycle through **Classic**, **Collection**, **Grid**,
 - **L1/L2 or R1/R2 in Grid:** tap for one page or hold for fast-track paging.
   Artwork loading resumes only at the final page when the buttons are released.
 
-The in-game return feature is currently a work in progress. Its planned control
+The in-game return feature is currently a work in progress. ~~Its planned control
 combination is **L1 + L2 + R1 + R2 + Start + Select** held for roughly one
 second; the default FMCB configuration is intended to return to
-`mc0:/APP_LUNA/luna.elf`.
+`mc0:/APP_LUNA/luna.elf`.~~
 
 ## Artwork layout
 
@@ -242,9 +212,6 @@ Use
 [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
 to obtain and prepare the square PSBBN artwork expected by Collection, Grid,
 Constellation, and Orbit.
-
-Missing optional artwork is handled without changing the underlying ISO list.
-The original NHDDL cover-loading path and metadata-device fallback are retained.
 
 ## Storage and configuration
 
