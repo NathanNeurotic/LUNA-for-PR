@@ -1,0 +1,34 @@
+// Original LUNA code: Danny Nunez (dnunezx) 2026
+#ifndef LUNA_UI_ART_CACHE_H
+#define LUNA_UI_ART_CACHE_H
+
+#include "target.h"
+#include "ui/navigation.h"
+#include <gsKit.h>
+#include <stdint.h>
+
+extern GSTEXTURE *coverTexture;
+extern GSTEXTURE *discTexture;
+extern GSTEXTURE *psbbnCoverTextures[PSBBN_COVER_CACHE_COUNT];
+extern uint8_t psbbnCoverLoaded[PSBBN_COVER_CACHE_COUNT];
+extern GSTEXTURE *gridCoverTextures[GRID_PAGE_BUFFERS][GRID_PAGE_SIZE];
+extern uint8_t gridCoverLoaded[GRID_PAGE_BUFFERS][GRID_PAGE_SIZE];
+extern GSTEXTURE *gridSelectedTextures[GRID_SELECTED_BUFFERS];
+extern uint8_t gridSelectedLoaded[GRID_SELECTED_BUFFERS];
+
+int artCacheInit(void);
+void artCacheShutdown(void);
+int loadCoverArt(struct DeviceMapEntry *device, char *titleID);
+int loadDiscArt(struct DeviceMapEntry *device, char *titleID);
+void releasePSBBNCovers(void);
+void releaseGridCovers(void);
+void releaseGridTexture(GSTEXTURE *texture);
+int loadGridPageStep(TargetList *titles, int pageBase, int buffer, int *nextSlot,
+                     int *didLoadArtwork);
+int refreshGridSelectedCover(Target *target, int buffer);
+void prepareGridPageBuffer(int buffer, int pageBase, int *pageBases,
+                           int *pageComplete, int *pageNextSlot);
+void refreshPSBBNCovers(TargetList *titles, int selectedTitleIdx, int previousTitleIdx);
+void updatePSBBNCoverResidency(int flowOffset);
+
+#endif

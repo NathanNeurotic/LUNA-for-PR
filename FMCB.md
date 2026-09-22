@@ -1,0 +1,83 @@
+# LUNA on an FMCB memory card
+
+This layout runs the complete LUNA and Neutrino runtime from an FMCB memory
+card in slot 1 (`mc0:`) while reading games, artwork, caches, options, and
+Favorites from the internal ATA/exFAT hard drive.
+
+## Install
+
+1. Back up the FMCB memory card and the target hard drive.
+2. Copy the packaged `APP_LUNA` directory to the root of the memory card and
+   rename the copied directory to `LUNA` if the copy tool does not preserve
+   that destination name.
+3. Confirm these paths exist exactly as shown; memory-card paths can be
+   case-sensitive:
+
+   ```text
+   mc0:/LUNA/luna.elf
+   mc0:/LUNA/luna.yaml
+   mc0:/LUNA/neutrino.elf
+   mc0:/LUNA/config/
+   mc0:/LUNA/modules/
+   ```
+
+4. In the Free McBoot Configurator, add a menu item named `LUNA` whose path is
+   `mc0:/LUNA/luna.elf`, then save the FMCB configuration.
+5. Keep the game drive's existing ISO and artwork layout. LUNA scans only the
+   ATA backend because the packaged `luna.yaml` contains `mode: ata`.
+
+The packaged return target is `mc0:/LUNA/luna.elf`. A card intentionally used
+in slot 2 must change both the FMCB menu entry and `return_path` in `luna.yaml`
+from `mc0:` to `mc1:`.
+
+During gameplay, one press of the console's physical power button retains the
+normal power-off behavior. Neutrino's priority-1 IOP listener acknowledges the
+native CD/DVD power event, finishes active optical work, shuts down DEV9 when
+present, and issues the standard `sceCdPowerOff` command. This is independent
+of IGR, controller hooks, and the running game; the button is not reinterpreted
+as an in-game return.
+
+## What remains on each hard drive
+
+LUNA continues to use the selected game's storage device as its metadata
+device. These paths therefore remain tied to each hard drive:
+
+```text
+/ART/
+/LUNA/cache.bin
+/LUNA/lastTitle.bin
+/LUNA/favorites.txt
+/LUNA/global.yaml
+/LUNA/<game name>.yaml
+```
+
+Swapping hard drives swaps their library, art, scan cache, options, last-title
+record, and Favorites set. The memory card contains no Favorites database.
+
+## Hardware validation status
+
+The complete 2026-09-19 `LUNA-FMCB-mc0.zip` package passed user-reported
+physical-hardware testing. This result applies to the tested console, adapter,
+bridge, memory card, and HDD; use the following checklist for regressions and
+for any different hardware. Verify the archive against `dist/SHA256SUMS.txt`.
+
+## Hardware regression checklist
+
+1. Boot LUNA from the FMCB menu and confirm the splash reports the ATA backend.
+2. Confirm the library, covers, and existing per-drive Favorites appear.
+3. Add or remove one Favorite, restart LUNA, and confirm it persisted on the
+   same drive. Swap drives and confirm the other drive has its own set.
+4. Launch a small known-good game and play long enough to exercise sustained
+   HDD reads.
+5. Hold L1 + L2 + R1 + R2 + Start + Select for roughly one second. A successful
+   direct return reloads `mc0:/LUNA/luna.elf` without using the HDD boot chain.
+6. If the screen turns solid red, power off normally. The fail-closed return
+   path intentionally refused to reset or reload after an unsafe shutdown.
+7. Relaunch the game and verify it still reads correctly. Power down and run a
+   read-only filesystem check on the HDD before broad testing.
+8. Relaunch the game, perform sustained HDD reads, and press the physical power
+   button once. Confirm that the console powers off normally and does not return
+   to LUNA. Run another read-only HDD filesystem check afterward.
+
+Repeat physical-console validation when any part of the console, network
+adapter, SATA/IDE bridge, memory card, hard drive, frontend, or runtime changes.

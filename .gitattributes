@@ -1,0 +1,17 @@
+# Original LUNA repository configuration: Danny Nunez (dnunezx) 2026
+
+* text=auto
+*.c text eol=lf
+*.h text eol=lf
+*.S text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+Makefile text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.ps1 text eol=crlf
+*.png binary
+

@@ -1,0 +1,62 @@
+# Original LUNA repository configuration: Danny Nunez (dnunezx) 2026
+
+# Build products
+**/build/
+**/build-*/
+*.elf
+*.irx
+*.o
+*.a
+/navigation.obj
+/test_navigation.obj
+
+# Release products
+dist/
+*.zip
+*.7z
+*.tar
+*.tar.gz
+
+# Local emulation and test assets
+/emulation/
+/neutrino/lab/
+backups/
+hdd/
+tools/pcsx2*/
+*.raw
+*.iso
+*.bin
+*.log
+
+# Downloaded artwork and generated captures
+emulation/art/**/*.png
+emulation/captures/
+
+# Local or reverted source copies
+*.bak
+*.orig
+*.rej
+/AGENTS.md
+/EMULATION.md
+/PROJECT.md
+/reference-opl/
+/release-staging/
+
+# Python and editor state
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+.zed/
+.DS_Store
+Thumbs.db
+
+# Never distribute console firmware or credentials
+**/bios/
+*.rom
+*.key
+*.pem
+*.pfx
+*.p12
+.env
+.env.*

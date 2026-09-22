@@ -1,0 +1,8 @@
+# Original LUNA configuration: Danny Nunez (dnunezx) 2026
+# LUNA configuration for an FMCB card in slot 1 (mc0:) with games on an
+# internal ATA/exFAT hard drive. Copy APP_LUNA to mc0:/LUNA.
+mode: ata
+return_path: mc0:/LUNA/luna.elf
+
+# Optional video mode. Leave unset to preserve the console/game default.
+# video: 480p

@@ -1,0 +1,54 @@
+// Original LUNA code: Danny Nunez (dnunezx) 2026
+#ifndef LUNA_UI_NAVIGATION_H
+#define LUNA_UI_NAVIGATION_H
+
+#include <stdint.h>
+
+#define PSBBN_COVER_CACHE_COUNT 10
+#define PSBBN_COVER_CACHE_FOCUS 3
+#define PSBBN_ANIMATION_DURATION_MS 420
+#define PSBBN_REPEAT_FRAMES_NTSC 11
+#define PSBBN_REPEAT_FRAMES_PAL 9
+#define GRID_COLUMNS 4
+#define GRID_ROWS 4
+#define GRID_PAGE_SIZE (GRID_COLUMNS * GRID_ROWS)
+#define GRID_PAGE_BUFFERS 3
+#define GRID_SELECTED_BUFFERS 2
+#define GRID_CASCADE_DURATION_MS 340
+#define GRID_CASCADE_ROW_STAGGER 90
+#define GRID_CASCADE_FOLLOW_DELAY 80
+#define GRID_CASCADE_ROW_DURATION 650
+#define GRID_FAST_TRACK_HOLD_MS 500
+#define GRID_FAST_TRACK_STEP_MS 140
+#define CONSTELLATION_RANDOM_STEP_MS 85
+
+typedef enum {
+  UI_VIEW_CLASSIC = 0,
+  UI_VIEW_PSBBN = 1,
+  UI_VIEW_GRID = 2,
+  UI_VIEW_CONSTELLATION = 3,
+  UI_VIEW_ORBIT = 4,
+} UILibraryView;
+
+int lunaNavWrap(int total, int index);
+int lunaNavGridVertical(int total, int index, int direction);
+int lunaNavGridPage(int total, int index, int direction);
+int lunaNavPageBase(int total, int pageBase, int direction);
+int lunaNavFindBuffer(const int *pageBases, int bufferCount, int pageBase);
+int lunaNavChooseBuffer(const int *pageBases, int bufferCount, int activeBuffer,
+                        int previousBuffer, int incomingBuffer);
+int lunaNavDirection(int total, int fromIdx, int toIdx);
+int lunaNavEase(int progress);
+int lunaNavAnimatedOffset(int startOffset, uint32_t startTime, uint32_t duration,
+                          uint32_t now);
+int lunaNavGridCascadeProgress(int progress, int row, int incoming);
+int lunaNavRandomTarget(int total, int selectedIndex, uint32_t randomSeed);
+int lunaNavMarkedCount(const uint8_t *marked, int total);
+int lunaNavMarkedRank(const uint8_t *marked, int total, int index);
+int lunaNavMarkedByRank(const uint8_t *marked, int total, int rank);
+int lunaNavMarkedStep(const uint8_t *marked, int total, int index, int direction);
+int lunaNavMarkedPage(const uint8_t *marked, int total, int index, int pageSize,
+                      int direction);
+UILibraryView lunaNavNextView(UILibraryView view);
+
+#endif
