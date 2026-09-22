@@ -145,15 +145,27 @@ If an existing drive already works with OPL, preserve its layout and mount its
 root directory in the manager. LUNA uses the same title-ID conventions for
 OPL-compatible cover art.
 
-### HDL/OPL compatibility
+### Other supported game storage
+LUNA is configured to use only the internal ATA drive because initializing every
+available storage device adds time to startup, even when those devices aren’t
+being used. Keeping the scan focused on one device helps the library load faster
+and makes startup more predictable; other device modes can be enabled when
+needed.
+The supplied package is configured for an internal ATA/exFAT drive. LUNA's
+NHDDL-derived launcher also supports these Neutrino game sources when configured
+in `luna.yaml`:
 
-The packaged FMCB configuration is ATA-only. It does not scan an APA/HDL drive
-unless LUNA is configured with `mode: hdl` instead. LUNA retains NHDDL's HDL
-backend and OPL metadata conventions for compatible setups: artwork and title
-options are read from the OPL partition named by
-`hdd0:__common/OPL/conf_hdd.cfg`, with `+OPL` and `__common/OPL` used as
-fallbacks. The HDL backend does not support virtual memory cards or virtual
-hard drives.
+- **MX4SIO** SD storage (`mode: mx4sio`). This mode must be enabled explicitly
+  and makes MMCE devices unavailable while active.
+- **USB mass storage** (`mode: usb`).
+- **MMCE** devices, including SD2PSX and MemCard PRO2 (`mode: mmce`).
+- **iLink / IEEE 1394** storage (`mode: ilink`).
+- **UDPFS / UDPBD** network storage (`mode: udpfs`); requires the PS2 network
+  address and a compatible server.
+- **HD Loader (HDL)** APA-partitioned HDD (`mode: hdl`), subject to the limits
+  described above.
+- **ATA** MBR/GPT exFAT storage (`mode: ata`), set by default
+
 
 ## What LUNA adds
 
