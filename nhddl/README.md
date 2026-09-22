@@ -1,7 +1,7 @@
 # LUNA — Release Candidate
 
 <p align="center">
-  <img src="img/logo/logo.png">
+  <img src="../assets/luna-logo.svg" alt="LUNA logo" width="700">
 </p>
 
 LUNA (Lightweight Unified Neutrino Access) is a visual PlayStation 2 game loader derived from NHDDL. The most recent hardware ELF from this working tree is designated the Release Candidate.
@@ -163,6 +163,11 @@ Furthermore, directories that start with `.`, `$` and the following directories 
 NHDDL uses the same file naming convention and file format used by OPL.  
 Just put **140x200 PNG** files named `<title ID>_COV.png` (e.g. `SLUS_200.02_COV.png`) into the `ART` directory on the root of your device.  
 If unsure where to get your cover art from, check out the latest version of [OPL Manager](https://oplmanager.com).
+
+LUNA's Collection, Grid, Constellation, and Orbit views use optional **256x256
+PNG** artwork named `<title ID>.png` under `ART/PSBBN/`. Use
+[OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
+to obtain and prepare this PSBBN artwork.
 
 ### Passing arguments
 

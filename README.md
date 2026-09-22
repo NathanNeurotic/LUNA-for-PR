@@ -1,7 +1,7 @@
 # LUNA
 
 <p align="center">
-  <img src="nhddl/img/logo/logo.png" alt="LUNA logo" width="700">
+  <img src="assets/luna-logo.svg" alt="LUNA logo" width="700">
 </p>
 
 LUNA (**Lightweight Unified Neutrino Access**) is a visual PlayStation 2 game
@@ -35,7 +35,10 @@ ATA/exFAT hard drive.
 - **Artwork format:** artwork is optional and is not required to launch an
   ISO. For the complete library presentation, use title-ID-matched PNG files:
   140x200 covers, optional transparent disc labels, and optional 256x256
-  square PSBBN artwork. The exact filenames are shown in [Artwork layout](#artwork-layout).
+  square PSBBN artwork. Use
+  [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
+  to obtain the PSBBN artwork. The exact filenames are shown in
+  [Artwork layout](#artwork-layout).
 
 ## Installation
 
@@ -90,7 +93,9 @@ backup of the drive while testing a new adapter, bridge, or console.
 3. Create `/ART/` at the root of the game drive and add any optional artwork
    using the title ID from the ISO. Classic uses OPL-compatible covers and
    optional disc labels; Collection, Grid, Constellation, and Orbit use the
-   optional square artwork under `/ART/PSBBN/`.
+   optional square artwork under `/ART/PSBBN/`. Use
+   [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
+   to download and prepare that PSBBN artwork.
 4. If an existing drive already works with OPL, preserve its ISO and artwork
    layout. LUNA uses the same title-ID conventions for OPL-compatible cover
    art and does not require commercial game data or artwork to be moved to the
@@ -180,6 +185,11 @@ LUNA continues to use OPL-compatible title IDs and PNG artwork names:
 /ART/<TITLE_ID>_ICO.png       optional 64x64 transparent disc label used by Classic
 /ART/PSBBN/<TITLE_ID>.png     optional 256x256 square artwork for other views
 ```
+
+Use
+[OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
+to obtain and prepare the square PSBBN artwork expected by Collection, Grid,
+Constellation, and Orbit.
 
 Missing optional artwork is handled without changing the underlying ISO list.
 The original NHDDL cover-loading path and metadata-device fallback are retained.
