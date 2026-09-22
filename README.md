@@ -194,6 +194,22 @@ both the NHDDL-derived frontend and the Neutrino-derived game runtime.
 Press **Circle** to cycle through **Classic**, **Collection**, **Grid**,
 **Constellation**, and **Orbit**.
 
+### Views in motion
+
+Four of the five library views are shown below. The previews use sample game
+artwork; Constellation is not pictured.
+
+<table>
+  <tr>
+    <td align="center" width="50%"><strong>Classic</strong><br><img src="assets/previews/classic.gif" alt="Classic list view with cover art and a rotating disc label" width="360"></td>
+    <td align="center" width="50%"><strong>Collection</strong><br><img src="assets/previews/collection.gif" alt="Collection view moving through game artwork" width="360"></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Grid</strong><br><img src="assets/previews/grid.gif" alt="Grid view showing cover thumbnails and a selected game preview" width="360"></td>
+    <td align="center"><strong>Orbit</strong><br><img src="assets/previews/orbit.gif" alt="Orbit view moving through a ring of game covers" width="360"></td>
+  </tr>
+</table>
+
 - **Cross:** launch the selected game.
 - **Triangle:** open the selected game's options.
 - **Start:** open global options.
@@ -263,9 +279,9 @@ build instructions, [FMCB.md](FMCB.md) for the installation layout, and
 
 ## Repository contents
 
-This source tree intentionally does **not** contain commercial game data,
-console firmware, downloaded cover artwork, virtual hard-drive images, emulator
-binaries, development backups, or release packages.
+Apart from the interface preview GIFs, this source tree intentionally does
+**not** contain game ISOs, console firmware, standalone cover artwork, virtual
+hard-drive images, emulator binaries, development backups, or release packages.
 
 LUNA modifications and original LUNA code are attributed to
 **Danny Nunez (dnunezx) 2026**. Upstream code remains credited to its respective
