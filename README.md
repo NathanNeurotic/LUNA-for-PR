@@ -145,15 +145,16 @@ If an existing drive already works with OPL, preserve its layout and mount its
 root directory in the manager. LUNA uses the same title-ID conventions for
 OPL-compatible cover art.
 
-### Other supported game storage
+### Game storage modes
 LUNA is configured to use only the internal ATA drive because initializing every
 available storage device adds time to startup, even when those devices aren’t
 being used. Keeping the scan focused on one device helps the library load faster
 and makes startup more predictable; other device modes can be enabled when
 needed.
 The supplied package is configured for an internal ATA/exFAT drive. LUNA's
-NHDDL-derived launcher also supports these Neutrino game sources when configured
-in `luna.yaml`:
+library scans ATA, HDL, or USB games when that mode is selected in `luna.yaml`.
+The underlying NHDDL/Neutrino stack recognizes the modes below, but LUNA's
+library does not scan MX4SIO, MMCE, iLink, or UDPFS devices:
 
 - **MX4SIO** SD storage (`mode: mx4sio`). This mode must be enabled explicitly
   and makes MMCE devices unavailable while active.
@@ -182,7 +183,7 @@ both the NHDDL-derived frontend and the Neutrino-derived game runtime.
 | Orbit view | A depth-sorted ring of covers with perspective, fading, and shared artwork caching. |
 | Favorites | Per-drive Favorites stored in `/LUNA/favorites.txt`, shared by Classic and Collection without modifying the game library. |
 | Artwork | OPL-compatible covers plus optional disc labels and PSBBN-style square artwork, with view-specific caching and GS VRAM recovery. |
-| HDD-focused operation | The library accepts ATA and HDL hard-drive sources only. The shipped configuration uses internal ATA/exFAT and avoids waiting for a nonexistent second mass-storage device. |
+| Configured storage scan | The library accepts ATA, HDL, and USB devices. The shipped configuration uses internal ATA/exFAT and avoids waiting for a nonexistent second mass-storage device. |
 | Safer persistent state | LUNA writes cache, last-title, global options, and per-title settings under `/LUNA`, reads legacy `/nhddl` state as a fallback, bounds stored paths, and replaces key files only after a complete temporary write. |
 | FMCB deployment | The frontend and runtime can live together at `mc0:/APP_LUNA` while each hard drive retains its own artwork, cache, settings, and Favorites. |
 | In-game return | **Work in progress.** ~~The planned LUNA Neutrino runtime will recognize a held controller combination and return directly to a configured memory-card ELF or through the HDD/browser boot chain.~~ |

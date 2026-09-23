@@ -34,8 +34,8 @@ static const char legacyRootFallbackPath[] = "/nhddl/nhddl.yaml";
 #define OPTION_NO_INIT "noinit"
 #define OPTION_RETURN_PATH "return_path"
 
-// LUNA's library is intentionally restricted to hard-drive targets.
-#define LUNA_LIBRARY_MODES (MODE_ATA | MODE_HDL)
+// LUNA scans configured ATA, HDL, and USB game libraries.
+#define LUNA_LIBRARY_MODES (MODE_ATA | MODE_HDL | MODE_USB)
 
 #ifndef GIT_VERSION
 #define GIT_VERSION "v-0.0.0-unknown"
@@ -114,10 +114,9 @@ int main(int argc, char *argv[]) {
     if (deviceModeMap[i].scan == NULL)
       continue;
 
-    // Never add games from removable or network devices, even if an inherited
-    // NHDDL configuration initialized one.
+    // Only add games from supported library devices.
     if (!(deviceModeMap[i].mode & LUNA_LIBRARY_MODES)) {
-      DPRINTF("Skipping non-HDD library device %s\n", deviceModeMap[i].mountpoint);
+      DPRINTF("Skipping unsupported library device %s\n", deviceModeMap[i].mountpoint);
       continue;
     }
 

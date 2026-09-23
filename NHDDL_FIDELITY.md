@@ -134,3 +134,19 @@ localized to removing `LUNA_LIBRARY_MODES`, its scan-loop guard, and the
 ATA-only early exit in `initBDMDevices()`. Validation requires both PS2 builds,
 an ATA virtual-HDD library test in PCSX2, confirmation that an attached USB
 game library is excluded, and a physical-console startup timing check.
+
+## USB library scan
+
+On 2026-09-23 the user requested USB game support, superseding the HDD-only
+restriction for USB devices. Pinned NHDDL scans every initialized device; LUNA
+retains its scan guard but adds `MODE_USB` to the accepted modes. Other removable
+and network modes remain excluded. The packaged configuration remains ATA-only;
+USB users must select `mode: usb` in the active `luna.yaml`.
+
+The change risks slower startup on USB and depends on the drive mounting before
+the bounded BDM probe ends. Rollback is removing `MODE_USB` from
+`LUNA_LIBRARY_MODES`. The matching source change built in both frontend targets
+with the PS2 toolchain in the local working tree. PCSX2 detected a 100 MiB
+MBR/FAT32 USB test image as `usb0` (`mass0:`), and LUNA listed its homebrew
+`LUNA Diagnostics.iso`. A rebuild from this release checkout was requested but
+declined. Game launch and physical-console behavior remain unverified.
