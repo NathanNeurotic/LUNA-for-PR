@@ -17,7 +17,7 @@ ATA/exFAT hard drive.
 
 ## Requirements
 
-- **Compatible PlayStation 2:** currently only supports fat PS2s'
+- **Compatible PlayStation 2:** all hardware testing was done on a ps2 fat.
 - **FMCB memory card:** with enough space for the LUNA application.
 - **Internal ATA/exFAT drive:** an internal drive with an MBR- or GPT-formatted drive containing an exFAT partition. HDD and SDD are both supported.
 - **Network adapter or HDD bridge:** all hardware testing was done with a GameStar PS2 SATA HDD Adapter.
