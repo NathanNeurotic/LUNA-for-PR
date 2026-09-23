@@ -275,8 +275,7 @@ still be read for migration, but new writes go to `/LUNA`.
 
 See [UPSTREAM.md](UPSTREAM.md) for exact source lineage,
 [AUTHORS.md](AUTHORS.md) for attribution, [BUILDING.md](BUILDING.md) for local
-build instructions, [FMCB.md](FMCB.md) for the installation layout, and
-[NHDDL_FIDELITY.md](NHDDL_FIDELITY.md) for the inherited behavior LUNA preserves.
+build instructions, and [FMCB.md](FMCB.md) for the installation layout.
 
 ## Repository contents
 

@@ -232,15 +232,14 @@ presence and successful compilation are not substitutes for the rendered test.
 ## NHDDL fidelity gate
 
 Before accepting changes near storage, scanning, metadata, cover loading,
-configuration, or launch behavior, review
-[`NHDDL_FIDELITY.md`](NHDDL_FIDELITY.md) and compare the affected source with
-the pinned NHDDL commit:
+configuration, or launch behavior, compare the affected source with the pinned
+NHDDL commit:
 
 ```powershell
 git -C nhddl diff 89141d470ea2e0a2f81ad485874869f057bca082 -- src/main.c src/options.c src/target.c src/forwarder.c src/neutrino.c src/devices src/ui/gui.c
 ```
 
-Classify every relevant difference as UI-only, an already documented LUNA
+Classify every relevant difference as UI-only, an intentional LUNA
 extension, or an upstream-path divergence. Do not accept an unclassified
 critical-path change. A divergence requires explicit user approval and a
 documented rollback before implementation.
@@ -248,9 +247,8 @@ documented rollback before implementation.
 For cover-art work, confirm that `loadCoverArt()` still uses NHDDL's metadata
 fallback, `_COV.png` path, and `gsKit_texture_png()`. The documented LUNA
 paired-art exception retains decoded cover pixels while Classic View is active
-so an evicted texture can be re-uploaded; review `NHDDL_FIDELITY.md` before
-changing that lifetime. Verify source-art hashes and rendered output
-independently; a successful file lookup is not rendered proof.
+so an evicted texture can be re-uploaded. Verify source-art hashes and rendered
+output independently; a successful file lookup is not rendered proof.
 
 ## Backend
 
