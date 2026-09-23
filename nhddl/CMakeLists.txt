@@ -51,7 +51,9 @@ include(irx.cmake)
 
 # Get git version for build info
 find_package(Git QUIET)
-if(GIT_FOUND)
+if(DEFINED LUNA_RELEASE_VERSION AND NOT LUNA_RELEASE_VERSION STREQUAL "")
+  set(GIT_VERSION "${LUNA_RELEASE_VERSION}")
+elseif(GIT_FOUND)
   execute_process(
         COMMAND ${GIT_EXECUTABLE} describe --always --dirty --tags --exclude nightly
         OUTPUT_VARIABLE GIT_VERSION

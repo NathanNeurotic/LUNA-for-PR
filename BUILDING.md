@@ -290,6 +290,19 @@ dist/LUNA-FMCB-mc0/
 dist/LUNA-FMCB-mc0.zip
 ```
 
+For a versioned v1.1.0 package, build the frontend with
+`-DLUNA_RELEASE_VERSION=v1.1.0`, set `GIT_TAG=v1.1.0` when building Neutrino,
+copy the frontend to `dist/LUNA-v1.1.0.elf`, then run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\package-fmcb.ps1 -Version v1.1.0
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\verify-fmcb-package.ps1 -PackagePath .\dist\LUNA-v1.1.0-FMCB-mc0 -LauncherPath .\dist\LUNA-v1.1.0.elf
+```
+
+The versioned ZIP is `dist/LUNA-v1.1.0-FMCB-mc0.zip`. ZIP entry paths use
+forward slashes so Linux extractors retain the `APP_LUNA/config` and
+`APP_LUNA/modules` directories.
+
 The package copies `nhddl/examples/luna.yaml` as `APP_LUNA/luna.yaml`. That
 configuration selects only `mode: ata` and sets
 `return_path: mc0:/LUNA/luna.elf`. `APP_LUNA` must be copied to `mc0:/LUNA`.

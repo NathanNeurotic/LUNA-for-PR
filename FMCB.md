@@ -1,8 +1,8 @@
 # LUNA on an FMCB memory card
 
 This layout runs the complete LUNA and Neutrino runtime from an FMCB memory
-card in slot 1 (`mc0:`) while reading games, artwork, caches, options, and
-Favorites from the internal ATA/exFAT hard drive.
+card in slot 1 (`mc0:`). The supplied configuration reads games, artwork,
+caches, options, and Favorites from the internal ATA/exFAT hard drive.
 
 ## Install
 
@@ -26,6 +26,10 @@ Favorites from the internal ATA/exFAT hard drive.
 5. Keep the game drive's existing ISO and artwork layout. LUNA scans only the
    ATA backend because the packaged `luna.yaml` contains `mode: ata`.
 
+For USB games in v1.1.0, change `mode: ata` to `mode: usb` in
+`APP_LUNA/luna.yaml` before copying the folder to the memory card. This selects
+the USB game library; the default package remains configured for ATA.
+
 The packaged return target is `mc0:/LUNA/luna.elf`. A card intentionally used
 in slot 2 must change both the FMCB menu entry and `return_path` in `luna.yaml`
 from `mc0:` to `mc1:`.
@@ -37,7 +41,7 @@ present, and issues the standard `sceCdPowerOff` command. This is independent
 of IGR, controller hooks, and the running game; the button is not reinterpreted
 as an in-game return.
 
-## What remains on each hard drive
+## What remains on the selected game drive
 
 LUNA continues to use the selected game's storage device as its metadata
 device. These paths therefore remain tied to each hard drive:
@@ -51,15 +55,15 @@ device. These paths therefore remain tied to each hard drive:
 /LUNA/<game name>.yaml
 ```
 
-Swapping hard drives swaps their library, art, scan cache, options, last-title
+Swapping game drives swaps their library, art, scan cache, options, last-title
 record, and Favorites set. The memory card contains no Favorites database.
 
 ## Hardware validation status
 
 The complete 2026-09-19 `LUNA-FMCB-mc0.zip` package passed user-reported
-physical-hardware testing. This result applies to the tested console, adapter,
-bridge, memory card, and HDD; use the following checklist for regressions and
-for any different hardware. Verify the archive against `dist/SHA256SUMS.txt`.
+physical-hardware testing. The v1.1.0 package has not yet been tested on a
+physical console. Use the following checklist for regressions and different
+hardware. Verify the archive against `dist/SHA256SUMS.txt`.
 
 ## Hardware regression checklist
 
