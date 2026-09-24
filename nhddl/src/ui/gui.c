@@ -1469,6 +1469,7 @@ void drawTitleOptionsFooter(int baseX) {
 // Returns -1 if error occurs
 int uiTitleOptionsLoop(Target *target) {
   int res = 0;
+  int saveError = 0;
 
   // Load arguments from config files
   ArgumentList *titleArguments = loadLaunchArgumentLists(target);
@@ -1508,6 +1509,10 @@ int uiTitleOptionsLoop(Target *target) {
 
     // Draw footer
     drawTitleOptionsFooter(baseX);
+    if (saveError)
+      drawTextWindow(baseX, gsGlobal->Height - footerHeight - getFontLineHeight(), gsGlobal->Width - baseX,
+                     gsGlobal->Height - footerHeight, 0, ErrorTextColor, ALIGN_HCENTER,
+                     "Could not save game settings");
 
     gsKit_queue_exec(gsGlobal);
     gsKit_finish();
@@ -1530,8 +1535,9 @@ int uiTitleOptionsLoop(Target *target) {
       res = -1; // If this was somehow reached, something went terribly wrong
       goto exit;
     } else if (input & PAD_START) {
-      updateTitleLaunchArguments(target, titleArguments);
-      goto exit;
+      saveError = updateTitleLaunchArguments(target, titleArguments);
+      if (!saveError)
+        goto exit;
     } else if (input & PAD_TRIANGLE) {
       // Quit to title list
       goto exit;
@@ -1562,6 +1568,7 @@ exit:
 int uiArgumentListLoop(Target *target, ArgumentList *titleArguments) {
   int selectedArgIdx = 0;
   int input = 0;
+  int saveError = 0;
 
   Argument *curArgument = titleArguments->first;
   while (1) {
@@ -1575,6 +1582,10 @@ int uiArgumentListLoop(Target *target, ArgumentList *titleArguments) {
 
     // Draw footer
     drawTitleOptionsFooter(baseX);
+    if (saveError)
+      drawTextWindow(baseX, gsGlobal->Height - footerHeight - getFontLineHeight(), gsGlobal->Width - baseX,
+                     gsGlobal->Height - footerHeight, 0, ErrorTextColor, ALIGN_HCENTER,
+                     "Could not save game settings");
 
     int startY = headerHeight + 2.5 * getFontLineHeight();
     int idx = 0;
@@ -1624,8 +1635,9 @@ int uiArgumentListLoop(Target *target, ArgumentList *titleArguments) {
       uiLaunchTitle(target, titleArguments, NULL);
       return -1; // If this was somehow reached, something went terribly wrong
     } else if (input & PAD_START) {
-      updateTitleLaunchArguments(target, titleArguments);
-      return 1;
+      saveError = updateTitleLaunchArguments(target, titleArguments);
+      if (!saveError)
+        return 1;
     } else if (input & PAD_TRIANGLE) {
       return 1;
     }

@@ -238,50 +238,50 @@ int getTitleLaunchArguments(ArgumentList *result, Target *target) {
   }
 
   DPRINTF("Looking for title-specific config for %s (%s)\n", target->name, target->id);
+  char directoryPath[PATH_MAX + 1];
   char targetPath[PATH_MAX + 1];
-  if (buildConfigFilePath(targetPath, sizeof(targetPath), device->mountpoint, NULL))
-    return -ENAMETOOLONG;
-  // Determine actual title options file from config directory contents
-  DIR *directory = opendir(targetPath);
-  if (directory == NULL &&
-      !buildLegacyConfigFilePath(targetPath, sizeof(targetPath), device->mountpoint, NULL))
-    directory = opendir(targetPath);
-  if (directory == NULL) {
-    DPRINTF("ERROR: Can't open %s\n", targetPath);
-    return -ENOENT;
-  }
-  targetPath[0] = '\0';
+  // Prefer the current config directory, then older installations. Keep the
+  // directory in the path: a bare "/<game>.yaml" cannot be loaded from the device.
+  for (int base = 0; base < 2; base++) {
+    int pathResult = base == 0
+                         ? buildConfigFilePath(directoryPath, sizeof(directoryPath), device->mountpoint, NULL)
+                         : buildLegacyConfigFilePath(directoryPath, sizeof(directoryPath), device->mountpoint, NULL);
+    if (pathResult)
+      return pathResult;
+    DIR *directory = opendir(directoryPath);
+    if (directory == NULL)
+      continue;
 
-  // Find title config in config directory
-  struct dirent *entry;
-  while ((entry = readdir(directory)) != NULL) {
-    if (entry->d_type != DT_DIR) {
-      // Find file that starts with ISO name (without the extension)
-      if (!strncmp(entry->d_name, target->name, strlen(target->name))) {
-        size_t directoryLength = strlen(targetPath);
-        if (directoryLength + strlen(entry->d_name) + 2 >= sizeof(targetPath))
-          continue;
-        if (targetPath[directoryLength - 1] != '/')
-          strcat(targetPath, "/");
-        strcat(targetPath, entry->d_name);
+    // Older configs may use a longer prefix than the displayed ISO name.
+    // Prefer the exact filename written by the Save action when both exist.
+    char filename[PATH_MAX + 1] = "";
+    struct dirent *entry;
+    size_t nameLength = strlen(target->name);
+    while ((entry = readdir(directory)) != NULL) {
+      size_t entryLength = strlen(entry->d_name);
+      if (entry->d_type == DT_DIR || entryLength < nameLength + 5 ||
+          strncmp(entry->d_name, target->name, nameLength) ||
+          strcmp(entry->d_name + entryLength - 5, ".yaml"))
+        continue;
+      if (filename[0] == '\0' ||
+          (entryLength == nameLength + 5 && entry->d_name[nameLength] == '.'))
+        strlcpy(filename, entry->d_name, sizeof(filename));
+      if (entryLength == nameLength + 5 && entry->d_name[nameLength] == '.')
         break;
-      }
     }
-  }
-  closedir(directory);
+    closedir(directory);
+    if (filename[0] == '\0')
+      continue;
+    if (snprintf(targetPath, sizeof(targetPath), "%s/%s", directoryPath, filename) >= sizeof(targetPath))
+      return -ENAMETOOLONG;
 
-  if (targetPath[0] == '\0') {
-    DPRINTF("Title-specific config not found\n");
-    return 0;
+    DPRINTF("Loading title-specific config from %s\n", targetPath);
+    int ret = loadArgumentList(result, device, targetPath);
+    if (ret)
+      DPRINTF("ERROR: Failed to load argument list: %d\n", ret);
+    return ret;
   }
-
-  // Load arguments
-  DPRINTF("Loading title-specific config from %s\n", targetPath);
-  int ret = loadArgumentList(result, device, targetPath);
-  if (ret) {
-    DPRINTF("ERROR: Failed to load argument list: %d\n", ret);
-  }
-
+  DPRINTF("Title-specific config not found\n");
   return 0;
 }
 
@@ -301,16 +301,18 @@ int updateTitleLaunchArguments(Target *target, ArgumentList *options) {
   struct stat st;
   if (stat(lineBuffer, &st) == -1 && mkdir(lineBuffer, 0777))
     return -EIO;
-  if (buildConfigFilePath(lineBuffer, sizeof(lineBuffer), device->mountpoint, target->name))
+  char filename[PATH_MAX + 1];
+  if (snprintf(filename, sizeof(filename), "%s.yaml", target->name) >= sizeof(filename))
     return -ENAMETOOLONG;
-  strcat(lineBuffer, ".yaml");
+  if (buildConfigFilePath(lineBuffer, sizeof(lineBuffer), device->mountpoint, filename))
+    return -ENAMETOOLONG;
   DPRINTF("Saving title-specific config to %s\n", lineBuffer);
 
   // Open file, truncating it
-  int fd = open(lineBuffer, O_WRONLY | O_CREAT | O_TRUNC);
+  int fd = open(lineBuffer, O_WRONLY | O_CREAT | O_TRUNC, 0666);
   if (fd < 0) {
     DPRINTF("ERROR: Failed to open file\n");
-    return fd;
+    return -EIO;
   }
 
   // Write each argument into the file
@@ -325,23 +327,27 @@ int updateTitleLaunchArguments(Target *target, ArgumentList *options) {
     if (!tArg->isGlobal) {
       // Check if arg is a file path and trim mountpoint
       len = getRelativePathIdx(tArg->value);
-      if (len > 0)
-        len = sprintf(lineBuffer, "%s%s: %s\n", (tArg->isDisabled) ? "$" : "", tArg->arg, &tArg->value[len]);
-      else
-        len = sprintf(lineBuffer, "%s%s: %s\n", (tArg->isDisabled) ? "$" : "", tArg->arg, tArg->value);
+      len = snprintf(lineBuffer, sizeof(lineBuffer), "%s%s: %s\n", (tArg->isDisabled) ? "$" : "", tArg->arg,
+                     len > 0 ? &tArg->value[len] : tArg->value);
     } else if (tArg->isDisabled) {
-      len = sprintf(lineBuffer, "$%s:\n", tArg->arg);
+      len = snprintf(lineBuffer, sizeof(lineBuffer), "$%s:\n", tArg->arg);
     }
     if (len > 0) {
-      if ((ret = write(fd, lineBuffer, len)) != len) {
+      if ((size_t)len >= sizeof(lineBuffer)) {
+        ret = -ENAMETOOLONG;
+        goto out;
+      }
+      if (writeAll(fd, lineBuffer, len)) {
         DPRINTF("ERROR: Failed to write to file\n");
+        ret = -EIO;
         goto out;
       }
     }
     tArg = tArg->next;
   }
 out:
-  close(fd);
+  if (close(fd) && !ret)
+    ret = -EIO;
   return ret;
 }
 
