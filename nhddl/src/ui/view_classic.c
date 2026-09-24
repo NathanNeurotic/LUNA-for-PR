@@ -10,7 +10,7 @@
 #define COVER_ART_VERTICAL_OFFSET -4
 #define DISC_ART_SIZE 112
 #define DISC_ROTATION_PERIOD_MS 30000
-#define CLASSIC_SELECTION_GLOW_DURATION_MS 180
+#define CLASSIC_SELECTION_GLOW_DURATION_MS 110
 #define CLASSIC_GLOW_ROW_SCALE 256
 
 static int coverArtX2;
@@ -316,8 +316,31 @@ static void drawClassicDisc(GSTEXTURE *disc, uint32_t frameNowMs) {
   gsKit_set_primalpha(gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
 }
 
-void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPage, GSTEXTURE *selectedTitleCover,
-                   GSTEXTURE *selectedTitleDisc, const uint8_t *favoriteFlags, int favoritesOnly,
+static void drawClassicCoverTexture(GSTEXTURE *cover, int opacity, int z) {
+  if (opacity <= 0)
+    return;
+  gsKit_TexManager_bind(gsGlobal, cover);
+  if (opacity >= 1000) {
+    gsGlobal->PrimAlphaEnable = GS_SETTING_OFF;
+  } else {
+    gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
+    // Use a fixed blend factor: indexed OPL covers have inconsistent texture
+    // alpha, but their RGB pixels still blend cleanly at this opacity.
+    gsKit_set_primalpha(gsGlobal,
+                        GS_SETREG_ALPHA(0, 1, 2, 1, (opacity * 0x80) / 1000), 0);
+  }
+  gsKit_prim_sprite_texture(gsGlobal, cover, coverArtX1, coverArtY1, 0.0f, 0.0f,
+                            coverArtX2, coverArtY2, cover->Width, cover->Height,
+                            z, GS_SETREG_RGBA(0x80, 0x80, 0x80, 0x80));
+  gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
+  if (opacity < 1000)
+    gsKit_set_primalpha(gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
+}
+
+void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPage,
+                   GSTEXTURE *selectedTitleCover, GSTEXTURE *previousCover,
+                   GSTEXTURE *selectedTitleDisc, const uint8_t *favoriteFlags,
+                   int favoritesOnly, int coverPending, int coverTransitionProgress,
                    uint32_t frameNowMs) {
 
   int favoriteTotal = lunaNavMarkedCount(favoriteFlags, titles->total);
@@ -437,35 +460,37 @@ void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPag
   gsKit_prim_sprite(gsGlobal, coverArtX1 - 2, coverArtY1 - 2, coverArtX2 + 2, coverArtY2 + 2, 1, FontMainColor);
 #endif
 
-  // Draw cover art if it exists
-  if (selectedTitleCover != NULL) {
-    // Binding on every frame lets the texture manager re-upload a cover if a
-    // later texture allocation ever displaced it from GS VRAM.
-    gsKit_TexManager_bind(gsGlobal, selectedTitleCover);
-    // Temporaily disable alpha blending
-    // Some PNGs require inverted alpha channel value to display properly
-    // Since cover art has nothing to blend, we can bypass the issue altogether
-    gsGlobal->PrimAlphaEnable = GS_SETTING_OFF;
+  // Keep the outgoing cover in place while the next PNG is decoded. Once it
+  // arrives, blend between the two resident textures rather than flashing a
+  // missing-art message between selections.
 #ifdef LUNA_GLASS_UI
-    const int coverTextureZ = 5;
+  const int coverTextureZ = 5;
 #else
-    const int coverTextureZ = 2;
+  const int coverTextureZ = 2;
 #endif
-    // GS texture modulation is neutral at 0x80. Text colors are intentionally
-    // brighter and would overexpose the decoded cover when reused here.
-    gsKit_prim_sprite_texture(gsGlobal, selectedTitleCover, coverArtX1, coverArtY1, 0.0f, 0.0f, coverArtX2, coverArtY2, selectedTitleCover->Width,
-                              selectedTitleCover->Height, coverTextureZ, GS_SETREG_RGBA(0x80, 0x80, 0x80, 0x80));
-    gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
-  } else {
+  if (selectedTitleCover == NULL) {
 #ifdef LUNA_GLASS_UI
     gsKit_prim_sprite(gsGlobal, coverArtX1, coverArtY1, coverArtX2, coverArtY2, 5, GS_SETREG_RGBA(0x04, 0x0C, 0x20, 0x60));
     drawGlassDiamond((coverArtX1 + coverArtX2) / 2, (coverArtY1 + coverArtY2) / 2 - 12, 24, 6,
                      GS_SETREG_RGBA(0x70, 0xD8, 0xFF, 0x48));
-    drawTextWindow(coverArtX1, coverArtY1, coverArtX2, coverArtY2 + 44, 6, HeaderTextColor, ALIGN_CENTER, "COVER\nUNAVAILABLE");
+    drawTextWindow(coverArtX1, coverArtY1, coverArtX2, coverArtY2 + 44, 6, HeaderTextColor, ALIGN_CENTER,
+                   coverPending ? "LOADING\nCOVER" : "COVER\nUNAVAILABLE");
 #else
     gsKit_prim_sprite(gsGlobal, coverArtX1, coverArtY1, coverArtX2, coverArtY2, 1, BGColor);
-    drawTextWindow(coverArtX1, coverArtY1, coverArtX2, coverArtY2, 1, FontMainColor, ALIGN_CENTER, "No cover art");
+    drawTextWindow(coverArtX1, coverArtY1, coverArtX2, coverArtY2, 1, FontMainColor, ALIGN_CENTER,
+                   coverPending ? "Loading cover" : "No cover art");
 #endif
+  }
+  if (previousCover != NULL && coverTransitionProgress < 1000) {
+    if (selectedTitleCover != NULL) {
+      drawClassicCoverTexture(previousCover, 1000, coverTextureZ);
+      drawClassicCoverTexture(selectedTitleCover, coverTransitionProgress, coverTextureZ + 1);
+    } else {
+      drawClassicCoverTexture(previousCover, 1000 - coverTransitionProgress,
+                              coverTextureZ + 1);
+    }
+  } else if (selectedTitleCover != NULL) {
+    drawClassicCoverTexture(selectedTitleCover, 1000, coverTextureZ);
   }
 
   drawClassicDisc(selectedTitleDisc, frameNowMs);

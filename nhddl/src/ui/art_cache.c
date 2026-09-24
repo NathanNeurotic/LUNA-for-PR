@@ -16,6 +16,7 @@ typedef struct {
 } PSBBNPixel;
 
 GSTEXTURE *coverTexture;
+GSTEXTURE *classicPreviousCoverTexture;
 GSTEXTURE *discTexture;
 GSTEXTURE *psbbnCoverTextures[PSBBN_COVER_CACHE_COUNT];
 uint8_t psbbnCoverLoaded[PSBBN_COVER_CACHE_COUNT];
@@ -34,12 +35,14 @@ static char artPathBuffer[255];
 
 int artCacheInit(void) {
   coverTexture = calloc(sizeof(GSTEXTURE), 1);
+  classicPreviousCoverTexture = calloc(sizeof(GSTEXTURE), 1);
   discTexture = calloc(sizeof(GSTEXTURE), 1);
-  if (coverTexture == NULL || discTexture == NULL) {
+  if (coverTexture == NULL || classicPreviousCoverTexture == NULL || discTexture == NULL) {
     artCacheShutdown();
     return -1;
   }
   coverTexture->Delayed = 1;
+  classicPreviousCoverTexture->Delayed = 1;
   discTexture->Delayed = 1;
 
   for (int i = 0; i < PSBBN_COVER_CACHE_COUNT; i++) {
@@ -71,24 +74,48 @@ int artCacheInit(void) {
   return 0;
 }
 
-int loadCoverArt(struct DeviceMapEntry *device, char *titleID) {
+static int loadCoverArtInto(struct DeviceMapEntry *device, char *titleID,
+                            GSTEXTURE *texture) {
   if (device->metadev) { // Fallback to metadata device
     device = device->metadev;
   }
   // Reuse line buffer for building texture path
   snprintf(artPathBuffer, 255, "%s%s/%s_COV.png", device->mountpoint, artPath, titleID);
-  gsKit_TexManager_invalidate(gsGlobal, coverTexture);
-  free(coverTexture->Mem);
-  coverTexture->Mem = NULL;
-  free(coverTexture->Clut);
-  coverTexture->Clut = NULL;
-  if (gsKit_texture_png(gsGlobal, coverTexture, artPathBuffer)) {
+  gsKit_TexManager_invalidate(gsGlobal, texture);
+  free(texture->Mem);
+  texture->Mem = NULL;
+  free(texture->Clut);
+  texture->Clut = NULL;
+  if (gsKit_texture_png(gsGlobal, texture, artPathBuffer)) {
     return -1;
   }
-  gsKit_TexManager_bind(gsGlobal, coverTexture);
+  gsKit_TexManager_bind(gsGlobal, texture);
   // Retain the decoded source in EE RAM. If the texture manager evicts the
   // cover while binding fonts or disc art, a later bind can safely re-upload it.
   return 0;
+}
+
+int loadCoverArt(struct DeviceMapEntry *device, char *titleID) {
+  return loadCoverArtInto(device, titleID, coverTexture);
+}
+
+int loadNextClassicCoverArt(struct DeviceMapEntry *device, char *titleID) {
+  GSTEXTURE *previous;
+  int result = loadCoverArtInto(device, titleID, classicPreviousCoverTexture);
+  previous = coverTexture;
+  coverTexture = classicPreviousCoverTexture;
+  classicPreviousCoverTexture = previous;
+  return result;
+}
+
+void releaseClassicArtVRAM(void) {
+  GSTEXTURE *textures[] = {coverTexture, classicPreviousCoverTexture, discTexture};
+  for (int i = 0; i < 3; i++) {
+    if (textures[i] != NULL && textures[i]->Vram != 0)
+      gsKit_TexManager_free(gsGlobal, textures[i]);
+    if (textures[i] != NULL)
+      textures[i]->Vram = 0;
+  }
 }
 
 // OPL Manager stores transparent disc-label artwork as ART/<TITLE_ID>_ICO.png.
@@ -503,6 +530,12 @@ void artCacheShutdown(void) {
     free(coverTexture->Clut);
     free(coverTexture);
     coverTexture = NULL;
+  }
+  if (classicPreviousCoverTexture != NULL) {
+    free(classicPreviousCoverTexture->Mem);
+    free(classicPreviousCoverTexture->Clut);
+    free(classicPreviousCoverTexture);
+    classicPreviousCoverTexture = NULL;
   }
   if (discTexture != NULL) {
     free(discTexture->Mem);

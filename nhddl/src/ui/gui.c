@@ -646,6 +646,14 @@ int uiLoop(TargetList *titles) {
   int favoritesTabButtonHeld = 0;
   int favoritesOnly = 0;
   int collectionFavoritesOnly = 0;
+  int classicArtRequestedIdx = -1;
+  int classicNavHeld = 0;
+  int classicDisplayedCoverAvailable = 0;
+  int classicDisplayedDiscAvailable = 0;
+  int classicPreviousCoverAvailable = 0;
+  uint32_t classicArtDueMs = 0;
+  uint32_t classicCoverFadeStartMs = 0;
+  LunaNavRepeatState classicRepeat = {0};
   UILibraryView view = UI_VIEW_CLASSIC;
   Target *curTarget = titles->first;
 
@@ -685,10 +693,12 @@ int uiLoop(TargetList *titles) {
     goto exit;
   }
 
-  // Classic cover and disc textures are unnecessary when restoring another view.
+  // Classic textures are unnecessary when restoring another view.
   if (view == UI_VIEW_CLASSIC) {
     isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
     isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
+    classicDisplayedCoverAvailable = !isCoverUninitialized;
+    classicDisplayedDiscAvailable = !isDiscUninitialized;
   }
 
   // Main UI loop
@@ -716,9 +726,24 @@ int uiLoop(TargetList *titles) {
     if (curTarget->idx != selectedTitleIdx) {
       curTarget = getTargetByIdx(titles, selectedTitleIdx);
       if (view == UI_VIEW_CLASSIC) {
-        isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
-        isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
+        // Keep input polling light while moving through the list. The old art
+        // remains visible, but is not eligible for a launch handoff.
+        isCoverUninitialized = 1;
+        isDiscUninitialized = 1;
+        classicArtRequestedIdx = selectedTitleIdx;
+        classicArtDueMs = uiNowMs() + CLASSIC_ART_SETTLE_MS;
       }
+    }
+
+    if (view == UI_VIEW_CLASSIC && classicArtRequestedIdx == selectedTitleIdx &&
+        !classicNavHeld && (int32_t)(uiNowMs() - classicArtDueMs) >= 0) {
+      classicPreviousCoverAvailable = classicDisplayedCoverAvailable;
+      isCoverUninitialized = loadNextClassicCoverArt(curTarget->device, curTarget->id);
+      isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
+      classicDisplayedCoverAvailable = !isCoverUninitialized;
+      classicDisplayedDiscAvailable = !isDiscUninitialized;
+      classicCoverFadeStartMs = uiNowMs();
+      classicArtRequestedIdx = -1;
     }
 
     if (view == UI_VIEW_PSBBN || view == UI_VIEW_CONSTELLATION || view == UI_VIEW_ORBIT) {
@@ -987,10 +1012,20 @@ int uiLoop(TargetList *titles) {
       }
     } else {
       int favoritesEmpty = favoritesOnly && lunaNavMarkedCount(favoriteFlags, titles->total) == 0;
+      const uint32_t frameNowMs = uiNowMs();
+      const int coverPending = classicArtRequestedIdx == selectedTitleIdx;
+      uint32_t fadeElapsed = frameNowMs - classicCoverFadeStartMs;
+      int coverFadeProgress = (classicPreviousCoverAvailable && !coverPending &&
+                               fadeElapsed < CLASSIC_COVER_FADE_DURATION_MS)
+                                  ? (int)(fadeElapsed * 1000U / CLASSIC_COVER_FADE_DURATION_MS)
+                                  : 1000;
       drawTitleList(titles, selectedTitleIdx, maxTitlesPerPage,
-                    (isCoverUninitialized || favoritesEmpty) ? NULL : coverTexture,
-                    (isDiscUninitialized || favoritesEmpty) ? NULL : discTexture,
-                    favoriteFlags, favoritesOnly, uiNowMs());
+                    (classicDisplayedCoverAvailable && !favoritesEmpty) ? coverTexture : NULL,
+                    (classicPreviousCoverAvailable && !favoritesEmpty && !coverPending &&
+                     coverFadeProgress < 1000) ? classicPreviousCoverTexture : NULL,
+                    (classicDisplayedDiscAvailable && !favoritesEmpty) ? discTexture : NULL,
+                    favoriteFlags, favoritesOnly, coverPending && !favoritesEmpty,
+                    coverFadeProgress, frameNowMs);
     }
 
   library_view_drawn:
@@ -1125,11 +1160,32 @@ int uiLoop(TargetList *titles) {
       frameCount = (frameCount + 1) % 10;
     }
 
-    if (frameCount && (input == prevInput))
-      continue;
-
-    frameCount = 0;
-    prevInput = input;
+    if (view == UI_VIEW_CLASSIC) {
+      const int rawInput = input;
+      const int navButtons = PAD_LEFT | PAD_RIGHT | PAD_UP | PAD_DOWN;
+      int direction = 0;
+      int navInput = 0;
+      if (rawInput & (PAD_LEFT | PAD_UP)) {
+        direction = -1;
+        navInput = (rawInput & PAD_UP) ? PAD_UP : PAD_LEFT;
+      } else if (rawInput & (PAD_RIGHT | PAD_DOWN)) {
+        direction = 1;
+        navInput = (rawInput & PAD_DOWN) ? PAD_DOWN : PAD_RIGHT;
+      }
+      classicNavHeld = direction != 0;
+      input = rawInput & ~prevInput & ~navButtons;
+      if (lunaNavRepeatStep(&classicRepeat, direction, uiNowMs(),
+                            CLASSIC_REPEAT_DELAY_MS, CLASSIC_REPEAT_INTERVAL_MS))
+        input |= navInput;
+      prevInput = rawInput;
+      if (!input)
+        continue;
+    } else {
+      if (frameCount && (input == prevInput))
+        continue;
+      frameCount = 0;
+      prevInput = input;
+    }
 
     // Grid shoulders are handled by the tap/hold state machine above.
     if (view == UI_VIEW_GRID && (input & (GRID_LEFT_SHOULDERS | GRID_RIGHT_SHOULDERS)))
@@ -1198,14 +1254,12 @@ int uiLoop(TargetList *titles) {
       collectionFavoritesOnly = 0;
 
       if (previousView == UI_VIEW_CLASSIC) {
-        if (coverTexture->Vram != 0)
-          gsKit_TexManager_free(gsGlobal, coverTexture);
-        coverTexture->Vram = 0;
-        if (discTexture->Vram != 0)
-          gsKit_TexManager_free(gsGlobal, discTexture);
-        discTexture->Vram = 0;
+        releaseClassicArtVRAM();
         isCoverUninitialized = 1;
         isDiscUninitialized = 1;
+        classicDisplayedCoverAvailable = 0;
+        classicDisplayedDiscAvailable = 0;
+        classicPreviousCoverAvailable = 0;
       } else if (previousView == UI_VIEW_PSBBN || previousView == UI_VIEW_CONSTELLATION ||
                  previousView == UI_VIEW_ORBIT) {
         if (!keepSharedPSBBNCache)
@@ -1257,6 +1311,12 @@ int uiLoop(TargetList *titles) {
       if (view == UI_VIEW_CLASSIC) {
         isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
         isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
+        classicDisplayedCoverAvailable = !isCoverUninitialized;
+        classicDisplayedDiscAvailable = !isDiscUninitialized;
+        classicPreviousCoverAvailable = 0;
+        classicArtRequestedIdx = -1;
+        classicNavHeld = 0;
+        classicRepeat.direction = 0;
       }
       if (saveLastLibraryView(curTarget, view))
         DPRINTF("WARN: Could not save selected library view\n");
@@ -1282,8 +1342,10 @@ int uiLoop(TargetList *titles) {
           selectedTitleIdx = lunaNavMarkedByRank(favoriteFlags, titles->total,
                                                 (previousRank < remaining) ? previousRank : 0);
           curTarget = getTargetByIdx(titles, selectedTitleIdx);
-          isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
-          isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
+          isCoverUninitialized = 1;
+          isDiscUninitialized = 1;
+          classicArtRequestedIdx = selectedTitleIdx;
+          classicArtDueMs = uiNowMs() + CLASSIC_ART_SETTLE_MS;
         }
       }
     } else if (view == UI_VIEW_CONSTELLATION && (input & PAD_SQUARE) && !constellationRandomButtonHeld) {

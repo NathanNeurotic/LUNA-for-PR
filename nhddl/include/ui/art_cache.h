@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 extern GSTEXTURE *coverTexture;
+extern GSTEXTURE *classicPreviousCoverTexture;
 extern GSTEXTURE *discTexture;
 extern GSTEXTURE *psbbnCoverTextures[PSBBN_COVER_CACHE_COUNT];
 extern uint8_t psbbnCoverLoaded[PSBBN_COVER_CACHE_COUNT];
@@ -19,7 +20,9 @@ extern uint8_t gridSelectedLoaded[GRID_SELECTED_BUFFERS];
 int artCacheInit(void);
 void artCacheShutdown(void);
 int loadCoverArt(struct DeviceMapEntry *device, char *titleID);
+int loadNextClassicCoverArt(struct DeviceMapEntry *device, char *titleID);
 int loadDiscArt(struct DeviceMapEntry *device, char *titleID);
+void releaseClassicArtVRAM(void);
 void releasePSBBNCovers(void);
 void releaseGridCovers(void);
 void releaseGridTexture(GSTEXTURE *texture);

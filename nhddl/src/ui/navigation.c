@@ -9,6 +9,24 @@ int lunaNavWrap(int total, int index) {
   return (index < 0) ? index + total : index;
 }
 
+int lunaNavRepeatStep(LunaNavRepeatState *state, int direction, uint32_t now,
+                      uint32_t initialDelayMs, uint32_t intervalMs) {
+  if (direction == 0) {
+    state->direction = 0;
+    return 0;
+  }
+  if (direction != state->direction) {
+    state->direction = direction;
+    state->nextStepMs = now + initialDelayMs;
+    return 1;
+  }
+  if ((int32_t)(now - state->nextStepMs) < 0)
+    return 0;
+  // Do not queue missed repeats after a slow artwork decode or frame.
+  state->nextStepMs = now + intervalMs;
+  return 1;
+}
+
 int lunaNavGridVertical(int total, int index, int direction) {
   int candidate;
   int column;

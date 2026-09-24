@@ -33,6 +33,15 @@ static void testBufferSelection(void) {
 }
 
 static void testTiming(void) {
+  LunaNavRepeatState repeat = {0};
+  assert(lunaNavRepeatStep(&repeat, 1, 100, 260, 105) == 1);
+  assert(lunaNavRepeatStep(&repeat, 1, 359, 260, 105) == 0);
+  assert(lunaNavRepeatStep(&repeat, 1, 360, 260, 105) == 1);
+  assert(lunaNavRepeatStep(&repeat, 1, 900, 260, 105) == 1);
+  assert(lunaNavRepeatStep(&repeat, 1, 901, 260, 105) == 0);
+  assert(lunaNavRepeatStep(&repeat, -1, 902, 260, 105) == 1);
+  assert(lunaNavRepeatStep(&repeat, 0, 903, 260, 105) == 0);
+  assert(lunaNavRepeatStep(&repeat, -1, 904, 260, 105) == 1);
   assert(lunaNavEase(0) == 0);
   assert(lunaNavEase(500) == 500);
   assert(lunaNavEase(1000) == 1000);

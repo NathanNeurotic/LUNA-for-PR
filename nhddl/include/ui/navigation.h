@@ -21,6 +21,15 @@
 #define GRID_FAST_TRACK_HOLD_MS 500
 #define GRID_FAST_TRACK_STEP_MS 140
 #define CONSTELLATION_RANDOM_STEP_MS 85
+#define CLASSIC_REPEAT_DELAY_MS 260
+#define CLASSIC_REPEAT_INTERVAL_MS 105
+#define CLASSIC_ART_SETTLE_MS 90
+#define CLASSIC_COVER_FADE_DURATION_MS 180
+
+typedef struct {
+  int direction;
+  uint32_t nextStepMs;
+} LunaNavRepeatState;
 
 typedef enum {
   UI_VIEW_CLASSIC = 0,
@@ -31,6 +40,8 @@ typedef enum {
 } UILibraryView;
 
 int lunaNavWrap(int total, int index);
+int lunaNavRepeatStep(LunaNavRepeatState *state, int direction, uint32_t now,
+                      uint32_t initialDelayMs, uint32_t intervalMs);
 int lunaNavGridVertical(int total, int index, int direction);
 int lunaNavGridPage(int total, int index, int direction);
 int lunaNavPageBase(int total, int pageBase, int direction);

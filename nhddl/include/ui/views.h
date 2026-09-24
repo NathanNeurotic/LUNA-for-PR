@@ -8,8 +8,10 @@
 
 void calculateCoverArtGeometry(void);
 void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPage,
-                   GSTEXTURE *selectedTitleCover, GSTEXTURE *selectedTitleDisc,
-                   const uint8_t *favoriteFlags, int favoritesOnly, uint32_t frameNowMs);
+                   GSTEXTURE *selectedTitleCover, GSTEXTURE *previousCover,
+                   GSTEXTURE *selectedTitleDisc, const uint8_t *favoriteFlags,
+                   int favoritesOnly, int coverPending, int coverTransitionProgress,
+                   uint32_t frameNowMs);
 void drawPSBBNCollection(TargetList *titles, int selectedTitleIdx, GSTEXTURE **covers,
                          int flowOffset, int favoritesOnly, uint32_t frameNowMs);
 void drawPSBBNGrid(TargetList *titles, int selectedTitleIdx, int activeWindowBase,
