@@ -29,7 +29,6 @@
 #include "tlb.h"
 #include "util.h"
 
-#define LUNA_IGR_HOLD_FRAMES 45
 #define DBGCOL(...) do { } while (0)
 #define BGCOLND(...) do { } while (0)
 #define PADHOOK 0
@@ -40,7 +39,6 @@ static int (*scePad2CreateSocket)(pad2socketparam_t *SocketParam, void *addr);
 static paddata_t Pad_Data;
 static int IGR_Thread_ID = -1;
 static int IGR_Intc_ID = -1;
-static int luna_hold_frames = 0;
 int padOpen_hooked = 0;
 static int EnableDebug = 0;
 
@@ -194,14 +192,9 @@ static int IGR_Intc_Handler(int cause)
         }
     }
 
+    // Act on the first detected frame. Some games use this same combination
+    // for their own soft reset and can restart before a long hold expires.
     if (combo_pressed) {
-        if (luna_hold_frames < LUNA_IGR_HOLD_FRAMES)
-            luna_hold_frames++;
-    } else {
-        luna_hold_frames = 0;
-    }
-
-    if (luna_hold_frames >= LUNA_IGR_HOLD_FRAMES) {
         Pad_Data.combo_type = IGR_COMBO_START_SELECT;
 
         asm volatile("sync.l\n");
@@ -306,7 +299,6 @@ void Reset_Padhook(void)
 {
     IGR_Intc_ID = -1;
     IGR_Thread_ID = -1;
-    luna_hold_frames = 0;
     padOpen_hooked = 0;
 }
 

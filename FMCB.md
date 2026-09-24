@@ -65,6 +65,12 @@ physical-hardware testing. The v1.1.0 package has not yet been tested on a
 physical console. Use the following checklist for regressions and different
 hardware. Verify the archive against `dist/SHA256SUMS.txt`.
 
+On 2026-09-23, the first-frame IGR change returned from a user-supplied Tony
+Hawk's Pro Skater 4 ISO to LUNA in isolated PCSX2. Neutrino loaded the emulator
+target `host:/luna.elf`, and LUNA rebuilt the library afterward. This confirms
+the emulator control flow; the `mc0:/APP_LUNA/luna.elf` return still needs a
+physical-console test.
+
 ## Hardware regression checklist
 
 1. Boot LUNA from the FMCB menu and confirm the splash reports the ATA backend.
@@ -73,8 +79,10 @@ hardware. Verify the archive against `dist/SHA256SUMS.txt`.
    same drive. Swap drives and confirm the other drive has its own set.
 4. Launch a small known-good game and play long enough to exercise sustained
    HDD reads.
-5. Hold L1 + L2 + R1 + R2 + Start + Select for roughly one second. A successful
-   direct return reloads `mc0:/APP_LUNA/luna.elf` without using the HDD boot chain.
+5. Press L1 + L2 + R1 + R2 + Start + Select together. The return hook now acts
+   on the first detected frame instead of giving a game's own soft reset a
+   45-frame head start. A successful direct return reloads
+   `mc0:/APP_LUNA/luna.elf` without using the HDD boot chain.
 6. If the screen turns solid red, power off normally. The fail-closed return
    path intentionally refused to reset or reload after an unsafe shutdown.
 7. Relaunch the game and verify it still reads correctly. Power down and run a
