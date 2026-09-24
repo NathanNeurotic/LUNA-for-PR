@@ -123,8 +123,8 @@ static void IGR_Thread(void *arg)
 
     poweroff = (Pad_Data.combo_type == IGR_COMBO_R3_L3);
 
-    // Fail closed: never reset the IOP if the storage shutdown endpoint
-    // cannot confirm that DEV9 has been quiesced.
+    // Fail closed if the IOP cannot finish optical reads before the reset.
+    // DEV9 stays powered for IGR and is shut down only for physical power-off.
     if (lunaIGRShutdown(poweroff) < 0)
         luna_igr_fail();
 

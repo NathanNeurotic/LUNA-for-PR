@@ -259,8 +259,8 @@ static void cdvdfsv_rpc2_th(void *args)
 }
 
 //-------------------------------------------------------------------------
-// OPL-compatible shutdown endpoint. LUNA uses this to quiesce ATA/DEV9
-// before resetting the IOP and returning to the launcher.
+// OPL-compatible shutdown endpoint. Stop outstanding reads before IGR, but
+// keep DEV9 powered so the launcher can initialize the same HDD after return.
 static void cdvdfsv_rpc_sd_th(void *args)
 {
     sceSifSetRpcQueue(&rpc_sd_DQ, GetThreadId());
@@ -288,16 +288,18 @@ static int shutdown_services(int poweroff)
     sceCdBreak();
     sceCdSync(0);
 
-    dev9 = ioplib_getByName("dev9\0\0\0\0");
-    if (dev9 != NULL && dev9->exports[6] != NULL) {
-        void (*shutdown)(void) = dev9->exports[6];
-        shutdown();
-    }
-
-    // Power-off must not depend on DEV9 being present. USB, MX4SIO and other
-    // launch paths still need the front-panel button to behave normally.
     if (poweroff) {
         u32 stat;
+
+        // Only a real power-off may disable DEV9. Doing this during IGR can
+        // leave a physical HDD or SATA bridge unavailable after the IOP reset.
+        dev9 = ioplib_getByName("dev9\0\0\0\0");
+        if (dev9 != NULL && dev9->exports[6] != NULL) {
+            void (*shutdown)(void) = dev9->exports[6];
+            shutdown();
+        }
+
+        // Power-off must also work without DEV9 (USB and other backends).
         sceCdPowerOff(&stat);
     }
 
