@@ -607,6 +607,8 @@ int uiLoop(TargetList *titles) {
   int psbbnAnimationStartOffset = 0;
   uint32_t psbbnAnimationStart = 0;
   uint32_t psbbnAnimationDuration = PSBBN_ANIMATION_DURATION_MS;
+  LunaCollectionMotion collectionMotion = {0};
+  uint32_t collectionLastArtMs = 0;
   int gridActivePageBuffer = 0;
   int gridIncomingPageBuffer = -1;
   int gridPreviousPageBuffer = -1;
@@ -637,11 +639,11 @@ int uiLoop(TargetList *titles) {
   int gridFastTrackPageBase = -1;
   uint32_t gridFastTrackSlideStart = 0;
   uint32_t gridFastTrackNextStep = 0;
-  int constellationRandomActive = 0;
-  int constellationRandomTargetIdx = -1;
-  int constellationRandomDirection = 1;
-  uint32_t constellationRandomNextStep = 0;
-  int constellationRandomButtonHeld = 0;
+  int orbitRandomActive = 0;
+  int orbitRandomTargetIdx = -1;
+  int orbitRandomDirection = 1;
+  uint32_t orbitRandomNextStep = 0;
+  int orbitRandomButtonHeld = 0;
   int favoriteButtonHeld = 0;
   int favoritesTabButtonHeld = 0;
   int favoritesOnly = 0;
@@ -712,13 +714,13 @@ int uiLoop(TargetList *titles) {
     // A random destination may be far from the current title. Move toward it
     // one adjacent cache position at a time so refreshPSBBNCovers() recycles
     // nine entries and loads only one new PNG per step instead of ten at once.
-    if (view == UI_VIEW_CONSTELLATION && constellationRandomActive && uiNowMs() >= constellationRandomNextStep) {
-      selectedTitleIdx = lunaNavWrap(titles->total, selectedTitleIdx + constellationRandomDirection);
-      if (selectedTitleIdx == constellationRandomTargetIdx) {
-        constellationRandomActive = 0;
-        constellationRandomTargetIdx = -1;
+    if (view == UI_VIEW_ORBIT && orbitRandomActive && uiNowMs() >= orbitRandomNextStep) {
+      selectedTitleIdx = lunaNavWrap(titles->total, selectedTitleIdx + orbitRandomDirection);
+      if (selectedTitleIdx == orbitRandomTargetIdx) {
+        orbitRandomActive = 0;
+        orbitRandomTargetIdx = -1;
       } else {
-        constellationRandomNextStep = uiNowMs() + CONSTELLATION_RANDOM_STEP_MS;
+        orbitRandomNextStep = uiNowMs() + ORBIT_RANDOM_STEP_MS;
       }
     }
 
@@ -746,36 +748,41 @@ int uiLoop(TargetList *titles) {
       classicArtRequestedIdx = -1;
     }
 
-    if (view == UI_VIEW_PSBBN || view == UI_VIEW_CONSTELLATION || view == UI_VIEW_ORBIT) {
+    if (view == UI_VIEW_PSBBN) {
+      TargetList *flowTitles = collectionFavoritesOnly ? favoriteTitles : titles;
+      if (!collectionMotion.initialized) {
+        int rank = collectionFavoritesOnly
+                     ? lunaNavMarkedRank(favoriteFlags, titles->total, selectedTitleIdx)
+                     : selectedTitleIdx;
+        lunaCollectionReset(&collectionMotion, rank < 0 ? 0 : rank, uiNowMs());
+        prepareCollectionCovers(flowTitles, collectionMotion.focus);
+        collectionMotion.lastMs = uiNowMs();
+      }
+      int flowOffset = lunaCollectionOffset(&collectionMotion);
+      int fast = collectionMotion.mode == COLLECTION_SCAN;
+      uint32_t now = uiNowMs();
+      // Scan remains responsive even on cold storage. During ordinary motion
+      // prepare at most one cover every 90 ms; idle fills one slot per frame.
+      int allowLoad = !fast && !(collectionMotion.shoulder == 1 && collectionMotion.direction) &&
+                      (collectionMotion.mode == COLLECTION_IDLE || now - collectionLastArtMs >= 90);
+      if (refreshCollectionCovers(flowTitles, collectionMotion.focus, flowOffset,
+                                  collectionMotion.travelDirection, allowLoad, fast))
+        collectionLastArtMs = uiNowMs();
+      psbbnCoverBaseIdx = collectionMotion.focus;
+      drawPSBBNCollection(flowTitles, collectionMotion.focus, psbbnCoverTextures,
+                           flowOffset, collectionFavoritesOnly, uiNowMs(), &collectionMotion);
+    } else if (view == UI_VIEW_ORBIT) {
       TargetList *flowTitles = titles;
       int flowSelectedTitleIdx = selectedTitleIdx;
       uint32_t now = uiNowMs();
       int flowOffset;
 
-      if (view == UI_VIEW_PSBBN && collectionFavoritesOnly) {
-        flowTitles = favoriteTitles;
-        flowSelectedTitleIdx = lunaNavMarkedRank(favoriteFlags, titles->total, selectedTitleIdx);
-      }
-
-      if (flowTitles->total <= 0) {
-        if (psbbnCoverBaseIdx >= 0)
-          releasePSBBNCovers();
-        psbbnCoverBaseIdx = -1;
-        psbbnAnimationTargetIdx = -1;
-        psbbnAnimationStartOffset = 0;
-        now = uiNowMs();
-        drawPSBBNCollection(flowTitles, 0, psbbnCoverTextures, 0, collectionFavoritesOnly, now);
-        goto library_view_drawn;
-      }
-
       // Artwork decode, thumbnail generation, and texture promotion are
       // synchronous. Finish that work before sampling the animation clock so
       // the covers and background cannot render from opposite sides of a
       // loading pause.
-      if (psbbnCoverBaseIdx != flowSelectedTitleIdx) {
-        refreshPSBBNCovers(flowTitles, flowSelectedTitleIdx, psbbnCoverBaseIdx);
-        psbbnCoverBaseIdx = flowSelectedTitleIdx;
-      }
+      refreshPSBBNCovers(flowTitles, flowSelectedTitleIdx, psbbnCoverBaseIdx);
+      psbbnCoverBaseIdx = flowSelectedTitleIdx;
       now = uiNowMs();
 
       if (psbbnAnimationTargetIdx < 0) {
@@ -805,14 +812,8 @@ int uiLoop(TargetList *titles) {
       updatePSBBNCoverResidency(flowOffset);
       now = uiNowMs();
       flowOffset = lunaNavAnimatedOffset(psbbnAnimationStartOffset, psbbnAnimationStart, psbbnAnimationDuration, now);
-      if (view == UI_VIEW_CONSTELLATION)
-        drawConstellation(titles, selectedTitleIdx, psbbnCoverTextures, flowOffset,
-                          constellationRandomActive, now);
-      else if (view == UI_VIEW_ORBIT)
-        drawOrbit(titles, selectedTitleIdx, psbbnCoverTextures, flowOffset, now);
-      else
-        drawPSBBNCollection(flowTitles, flowSelectedTitleIdx, psbbnCoverTextures, flowOffset,
-                            collectionFavoritesOnly, now);
+      drawOrbit(titles, selectedTitleIdx, psbbnCoverTextures, flowOffset,
+                orbitRandomActive, now);
     } else if (view == UI_VIEW_GRID) {
       int didLoadArtwork = 0;
       int gridCascadeProgress = 0;
@@ -1028,8 +1029,6 @@ int uiLoop(TargetList *titles) {
                     coverFadeProgress, frameNowMs);
     }
 
-  library_view_drawn:
-
     gsKit_queue_exec(gsGlobal);
     gsKit_finish();
     gsKit_sync_flip(gsGlobal);
@@ -1041,7 +1040,7 @@ int uiLoop(TargetList *titles) {
       input = pollInput();
 
     if ((input & PAD_SQUARE) == 0) {
-      constellationRandomButtonHeld = 0;
+      orbitRandomButtonHeld = 0;
       favoriteButtonHeld = 0;
     }
     if ((input & PAD_SELECT) == 0)
@@ -1149,7 +1148,7 @@ int uiLoop(TargetList *titles) {
       }
     }
 
-    if (view == UI_VIEW_PSBBN || view == UI_VIEW_CONSTELLATION || view == UI_VIEW_ORBIT) {
+    if (view == UI_VIEW_PSBBN || view == UI_VIEW_ORBIT) {
       // Held navigation starts a new step roughly every 180 ms while each
       // glide lasts 420 ms. The accumulated fractional offset keeps the whole
       // stream continuous while several cover transitions overlap.
@@ -1160,7 +1159,40 @@ int uiLoop(TargetList *titles) {
       frameCount = (frameCount + 1) % 10;
     }
 
-    if (view == UI_VIEW_CLASSIC) {
+    if (view == UI_VIEW_PSBBN) {
+      const int rawInput = input;
+      const int navButtons = PAD_LEFT | PAD_RIGHT | PAD_UP | PAD_DOWN |
+                             PAD_L1 | PAD_R1 | PAD_L2 | PAD_R2;
+      int left = (rawInput & (PAD_LEFT | PAD_UP)) != 0;
+      int right = (rawInput & (PAD_RIGHT | PAD_DOWN)) != 0;
+      int shoulder = 0;
+      if (rawInput & (PAD_L1 | PAD_R1 | PAD_L2 | PAD_R2)) {
+        left = (rawInput & (PAD_L1 | PAD_L2)) != 0;
+        right = (rawInput & (PAD_R1 | PAD_R2)) != 0;
+        shoulder = (rawInput & (PAD_L1 | PAD_R1)) ? 1 : 2;
+      }
+      int direction = right == left ? 0 : (right ? 1 : -1);
+      int total = collectionFavoritesOnly ? favoriteTitles->total : titles->total;
+      input = rawInput & ~prevInput & ~navButtons;
+      prevInput = rawInput;
+      if (input & (PAD_CROSS | PAD_TRIANGLE | PAD_CIRCLE | PAD_SELECT | PAD_START)) {
+        // Actions refer to the cover the user just saw, before advancing time.
+        lunaCollectionReset(&collectionMotion, collectionMotion.focus, uiNowMs());
+      } else {
+        if (left && right && collectionMotion.mode != COLLECTION_SETTLE &&
+            collectionMotion.mode != COLLECTION_IDLE)
+          lunaCollectionBrake(&collectionMotion);
+        lunaCollectionUpdate(&collectionMotion, total, direction, shoulder,
+                              maxTitlesPerPage, uiNowMs());
+      }
+      if (total > 0) {
+        selectedTitleIdx = collectionFavoritesOnly
+                            ? lunaNavMarkedByRank(favoriteFlags, titles->total, collectionMotion.focus)
+                            : collectionMotion.focus;
+        curTarget = getTargetByIdx(titles, selectedTitleIdx);
+      }
+      if (!input) continue;
+    } else if (view == UI_VIEW_CLASSIC) {
       const int rawInput = input;
       const int navButtons = PAD_LEFT | PAD_RIGHT | PAD_UP | PAD_DOWN;
       int direction = 0;
@@ -1200,8 +1232,8 @@ int uiLoop(TargetList *titles) {
 
     // Any deliberate input interrupts an in-progress random scan and resumes
     // normal manual control immediately. Square below starts a fresh scan.
-    if (view == UI_VIEW_CONSTELLATION && constellationRandomActive && (input & ~PAD_SQUARE) != 0)
-      constellationRandomActive = 0;
+    if (view == UI_VIEW_ORBIT && orbitRandomActive && (input & ~PAD_SQUARE) != 0)
+      orbitRandomActive = 0;
 
     if ((view == UI_VIEW_CLASSIC || view == UI_VIEW_PSBBN) &&
         (input & PAD_SELECT) && !favoritesTabButtonHeld) {
@@ -1216,6 +1248,7 @@ int uiLoop(TargetList *titles) {
           selectedTitleIdx = firstFavorite;
       }
       if (view == UI_VIEW_PSBBN) {
+        collectionMotion.initialized = 0;
         releasePSBBNCovers();
         psbbnCoverBaseIdx = -1;
         psbbnAnimationTargetIdx = -1;
@@ -1237,8 +1270,7 @@ int uiLoop(TargetList *titles) {
       } else if (view == UI_VIEW_GRID && gridSelectedActiveBuffer >= 0 &&
                  gridSelectedLoaded[gridSelectedActiveBuffer]) {
         handoffCover = gridSelectedTextures[gridSelectedActiveBuffer];
-      } else if ((view == UI_VIEW_PSBBN || view == UI_VIEW_CONSTELLATION ||
-                  view == UI_VIEW_ORBIT) &&
+      } else if ((view == UI_VIEW_PSBBN || view == UI_VIEW_ORBIT) &&
                  psbbnCoverLoaded[PSBBN_COVER_CACHE_FOCUS]) {
         handoffCover = psbbnCoverTextures[PSBBN_COVER_CACHE_FOCUS];
       }
@@ -1249,7 +1281,10 @@ int uiLoop(TargetList *titles) {
       UILibraryView previousView = view;
       int keepSharedPSBBNCache;
       view = lunaNavNextView(view);
-      keepSharedPSBBNCache = (previousView == UI_VIEW_CONSTELLATION && view == UI_VIEW_ORBIT);
+      collectionMotion.initialized = 0;
+      // Retain the bounded shared cover cache in EE RAM through Classic and
+      // Grid. Filtered ranks belong to a different list and must be discarded.
+      keepSharedPSBBNCache = !collectionFavoritesOnly;
       favoritesOnly = 0;
       collectionFavoritesOnly = 0;
 
@@ -1260,10 +1295,11 @@ int uiLoop(TargetList *titles) {
         classicDisplayedCoverAvailable = 0;
         classicDisplayedDiscAvailable = 0;
         classicPreviousCoverAvailable = 0;
-      } else if (previousView == UI_VIEW_PSBBN || previousView == UI_VIEW_CONSTELLATION ||
-                 previousView == UI_VIEW_ORBIT) {
+      } else if (previousView == UI_VIEW_PSBBN || previousView == UI_VIEW_ORBIT) {
         if (!keepSharedPSBBNCache)
           releasePSBBNCovers();
+        else if (view != UI_VIEW_ORBIT)
+          releasePSBBNCoverVRAM();
       } else if (previousView == UI_VIEW_GRID) {
         releaseGridCovers();
       }
@@ -1305,9 +1341,9 @@ int uiLoop(TargetList *titles) {
       gridFastTrackPageBase = -1;
       gridFastTrackSlideStart = 0;
       gridFastTrackNextStep = 0;
-      constellationRandomActive = 0;
-      constellationRandomTargetIdx = -1;
-      constellationRandomButtonHeld = 0;
+      orbitRandomActive = 0;
+      orbitRandomTargetIdx = -1;
+      orbitRandomButtonHeld = 0;
       if (view == UI_VIEW_CLASSIC) {
         isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
         isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
@@ -1348,17 +1384,17 @@ int uiLoop(TargetList *titles) {
           classicArtDueMs = uiNowMs() + CLASSIC_ART_SETTLE_MS;
         }
       }
-    } else if (view == UI_VIEW_CONSTELLATION && (input & PAD_SQUARE) && !constellationRandomButtonHeld) {
+    } else if (view == UI_VIEW_ORBIT && (input & PAD_SQUARE) && !orbitRandomButtonHeld) {
       // Pick a different destination every time, then let the adjacent-step
       // scanner reach it without forcing a ten-PNG cache rebuild in one frame.
       if (titles->total > 1) {
         uint32_t randomSeed = uiNowMs() ^ ((uint32_t)(selectedTitleIdx + 1) * 2654435761U);
-        constellationRandomTargetIdx = lunaNavRandomTarget(titles->total, selectedTitleIdx, randomSeed);
-        constellationRandomDirection = lunaNavDirection(titles->total, selectedTitleIdx, constellationRandomTargetIdx);
-        constellationRandomActive = 1;
-        constellationRandomNextStep = uiNowMs();
+        orbitRandomTargetIdx = lunaNavRandomTarget(titles->total, selectedTitleIdx, randomSeed);
+        orbitRandomDirection = lunaNavDirection(titles->total, selectedTitleIdx, orbitRandomTargetIdx);
+        orbitRandomActive = 1;
+        orbitRandomNextStep = uiNowMs();
       }
-      constellationRandomButtonHeld = 1;
+      orbitRandomButtonHeld = 1;
     } else if (view == UI_VIEW_GRID && (input & (PAD_LEFT | PAD_RIGHT | PAD_UP | PAD_DOWN))) {
       int navigationIdx = (gridPendingSelectedIdx >= 0) ? gridPendingSelectedIdx : selectedTitleIdx;
       int candidate = navigationIdx;

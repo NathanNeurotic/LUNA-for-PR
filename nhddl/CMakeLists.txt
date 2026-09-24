@@ -33,7 +33,6 @@ set(SOURCES
     src/ui/view_classic.c
     src/ui/view_collection.c
   src/ui/view_grid.c
-  src/ui/view_constellation.c
   src/ui/view_orbit.c
     src/ui/args.c
     src/ui/pad.c

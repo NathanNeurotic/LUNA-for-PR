@@ -20,11 +20,37 @@
 #define GRID_CASCADE_ROW_DURATION 650
 #define GRID_FAST_TRACK_HOLD_MS 500
 #define GRID_FAST_TRACK_STEP_MS 140
-#define CONSTELLATION_RANDOM_STEP_MS 85
+#define ORBIT_RANDOM_STEP_MS 85
 #define CLASSIC_REPEAT_DELAY_MS 260
 #define CLASSIC_REPEAT_INTERVAL_MS 105
 #define CLASSIC_ART_SETTLE_MS 90
 #define CLASSIC_COVER_FADE_DURATION_MS 180
+
+#define COLLECTION_STEP_MS 300
+#define COLLECTION_HOLD_MS 280
+#define COLLECTION_SCAN_HOLD_MS 450
+#define COLLECTION_SETTLE_MS 160
+#define COLLECTION_SCAN_LABEL_MS 400
+
+typedef enum {
+  COLLECTION_IDLE, COLLECTION_STEP, COLLECTION_BROWSE,
+  COLLECTION_SCAN, COLLECTION_SETTLE, COLLECTION_JUMP
+} LunaCollectionMode;
+
+typedef struct {
+  int initialized, focus, direction, shoulder, travelDirection;
+  float position, velocity, target, startPosition, startVelocity, speedBlend;
+  uint32_t lastMs, heldMs, motionMs, durationMs, scanLabelMs;
+  LunaCollectionMode mode;
+} LunaCollectionMotion;
+
+void lunaCollectionReset(LunaCollectionMotion *state, int focus, uint32_t now);
+void lunaCollectionUpdate(LunaCollectionMotion *state, int total, int direction,
+                          int shoulder, int pageSize, uint32_t now);
+void lunaCollectionBrake(LunaCollectionMotion *state);
+int lunaCollectionOffset(const LunaCollectionMotion *state);
+int lunaCollectionPage(int total, int index, int direction, int pageSize);
+void lunaCollectionCacheLayout(int total, int focus, int offset, int *targets);
 
 typedef struct {
   int direction;
@@ -35,8 +61,7 @@ typedef enum {
   UI_VIEW_CLASSIC = 0,
   UI_VIEW_PSBBN = 1,
   UI_VIEW_GRID = 2,
-  UI_VIEW_CONSTELLATION = 3,
-  UI_VIEW_ORBIT = 4,
+  UI_VIEW_ORBIT = 3,
 } UILibraryView;
 
 int lunaNavWrap(int total, int index);

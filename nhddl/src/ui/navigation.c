@@ -1,6 +1,176 @@
 // Original LUNA code: Danny Nunez (dnunezx) 2026
 #include "ui/navigation.h"
 #include <stddef.h>
+#include <string.h>
+
+static float collectionAbs(float value) { return value < 0 ? -value : value; }
+
+static int collectionRound(float value) {
+  return (int)(value + (value < 0 ? -0.5f : 0.5f));
+}
+
+void lunaCollectionReset(LunaCollectionMotion *s, int focus, uint32_t now) {
+  memset(s, 0, sizeof(*s));
+  s->initialized = 1;
+  s->focus = focus;
+  s->lastMs = now;
+}
+
+static void collectionAnimate(LunaCollectionMotion *s, float target,
+                               LunaCollectionMode mode, uint32_t duration) {
+  float distance = target - s->position;
+  float limit = collectionAbs(distance) * 3000.0f / duration;
+  s->startPosition = s->position;
+  s->target = target;
+  s->startVelocity = s->velocity;
+  // Monotone Hermite endpoints prevent a release from overshooting its title.
+  if (s->startVelocity * distance < 0) s->startVelocity = 0;
+  if (collectionAbs(s->startVelocity) > limit)
+    s->startVelocity = distance < 0 ? -limit : limit;
+  s->motionMs = 0;
+  s->durationMs = duration;
+  s->mode = mode;
+}
+
+void lunaCollectionBrake(LunaCollectionMotion *s) {
+  int landing = collectionRound(s->position);
+  uint32_t duration = COLLECTION_SETTLE_MS;
+  // Use the next center in the current direction: never more than one cover
+  // of drift, even when releasing near a boundary at maximum scan speed.
+  if (s->velocity > 0) landing = s->position < 0 ? 0 : 1;
+  if (s->velocity < 0) landing = s->position > 0 ? 0 : -1;
+  float speed = collectionAbs(s->velocity);
+  if (speed > 0) {
+    uint32_t monotoneDuration = (uint32_t)(collectionAbs(landing - s->position) * 3000.0f / speed);
+    if (duration > monotoneDuration) duration = monotoneDuration;
+    if (duration == 0) duration = 1;
+  }
+  collectionAnimate(s, (float)landing, COLLECTION_SETTLE, duration);
+}
+
+int lunaCollectionPage(int total, int index, int direction, int pageSize) {
+  if (total <= 1 || !direction) return total > 0 ? index : -1;
+  if (direction > 0) {
+    if (index == total - 1) return 0;
+    return index + pageSize < total ? index + pageSize : total - 1;
+  }
+  if (index == 0) return total - 1;
+  return index > pageSize ? index - pageSize : 0;
+}
+
+void lunaCollectionUpdate(LunaCollectionMotion *s, int total, int direction,
+                          int shoulder, int pageSize, uint32_t now) {
+  uint32_t elapsed = now - s->lastMs;
+  s->lastMs = now;
+  if (elapsed > 32) elapsed = 32; // Discard stall time, never fast-forward art.
+  if (total <= 1) {
+    lunaCollectionReset(s, total ? 0 : -1, now);
+    return;
+  }
+  if (direction != s->direction || shoulder != s->shoulder) {
+    int previousDirection = s->direction;
+    s->direction = direction;
+    s->shoulder = shoulder;
+    s->heldMs = 0;
+    if (direction) {
+      s->travelDirection = direction;
+      if (shoulder) {
+        s->focus = lunaCollectionPage(total, s->focus, direction, pageSize);
+        s->position = -direction * 0.35f;
+        s->velocity = 0;
+        collectionAnimate(s, 0, COLLECTION_JUMP, COLLECTION_SETTLE_MS);
+      } else if (s->mode == COLLECTION_BROWSE || s->mode == COLLECTION_SCAN) {
+        // Preserve velocity through a live reversal; acceleration brakes it.
+        s->mode = COLLECTION_BROWSE;
+        s->heldMs = COLLECTION_HOLD_MS;
+      } else {
+        float destination = (s->mode == COLLECTION_STEP &&
+                             (!previousDirection || previousDirection == direction))
+                                ? s->target + direction : (float)direction;
+        collectionAnimate(s, destination, COLLECTION_STEP, COLLECTION_STEP_MS);
+      }
+    } else if (s->mode == COLLECTION_BROWSE || s->mode == COLLECTION_SCAN) {
+      lunaCollectionBrake(s);
+    }
+  }
+  // Integrate in small steps so 50 Hz and 60 Hz follow the same trajectory.
+  while (elapsed) {
+    uint32_t step = elapsed > 4 ? 4 : elapsed;
+    float dt = step / 1000.0f;
+    elapsed -= step;
+    if (direction && s->heldMs < 10000) s->heldMs += step;
+    if (direction && shoulder == 1 && s->heldMs >= COLLECTION_SCAN_HOLD_MS)
+      s->mode = COLLECTION_SCAN;
+    else if (direction && !shoulder && s->heldMs >= COLLECTION_HOLD_MS)
+      s->mode = COLLECTION_BROWSE;
+
+    if (s->mode == COLLECTION_SCAN || s->mode == COLLECTION_BROWSE) {
+      float speed = s->mode == COLLECTION_SCAN ? 10.0f : 6.0f;
+      float smallLimit = total <= 4 ? 2.0f : total * 0.8f;
+      if (speed > smallLimit) speed = smallLimit;
+      float desired = direction * speed;
+      float acceleration = (s->velocity * direction < 0 ? 60.0f : 16.0f) * dt;
+      float previousVelocity = s->velocity;
+      if (s->velocity < desired) {
+        s->velocity += acceleration;
+        if (s->velocity > desired) s->velocity = desired;
+      } else {
+        s->velocity -= acceleration;
+        if (s->velocity < desired) s->velocity = desired;
+      }
+      s->position += (previousVelocity + s->velocity) * 0.5f * dt;
+      s->target = s->startPosition = s->position;
+    } else if (s->mode != COLLECTION_IDLE) {
+      s->motionMs += step;
+      if (s->motionMs >= s->durationMs) {
+        s->position = s->target;
+        s->velocity = 0;
+        s->mode = COLLECTION_IDLE;
+      } else {
+        float t = (float)s->motionMs / s->durationMs;
+        float t2 = t * t, t3 = t2 * t;
+        float tangent = s->startVelocity * s->durationMs / 1000.0f;
+        s->position = (2*t3 - 3*t2 + 1)*s->startPosition +
+                      (t3 - 2*t2 + t)*tangent + (-2*t3 + 3*t2)*s->target;
+        s->velocity = ((6*t2 - 6*t)*s->startPosition +
+                       (3*t2 - 4*t + 1)*tangent + (-6*t2 + 6*t)*s->target) *
+                      1000.0f / s->durationMs;
+      }
+    }
+    int shift = collectionRound(s->position);
+    if (shift) {
+      s->focus = lunaNavWrap(total, s->focus + shift);
+      s->position -= shift;
+      s->target -= shift;
+      s->startPosition -= shift;
+    }
+    float blend = (collectionAbs(s->velocity) - 3.0f) / 7.0f;
+    if (blend < 0) blend = 0;
+    if (blend > 1) blend = 1;
+    s->speedBlend += (blend - s->speedBlend) * dt * 12.0f;
+    if (s->mode == COLLECTION_SCAN) s->scanLabelMs = COLLECTION_SCAN_LABEL_MS;
+    else if (s->mode == COLLECTION_IDLE)
+      s->scanLabelMs = s->scanLabelMs > step ? s->scanLabelMs - step : 0;
+  }
+}
+
+int lunaCollectionOffset(const LunaCollectionMotion *s) {
+  return (int)(-s->position * 1000.0f);
+}
+
+void lunaCollectionCacheLayout(int total, int focus, int offset, int *targets) {
+  for (int i = 0; i < PSBBN_COVER_CACHE_COUNT; i++) {
+    targets[i] = lunaNavWrap(total, focus + i - PSBBN_COVER_CACHE_FOCUS);
+    for (int j = 0; j < i; j++) {
+      if (targets[i] < 0 || targets[j] != targets[i]) continue;
+      int a = (i - PSBBN_COVER_CACHE_FOCUS)*1000 + offset;
+      int b = (j - PSBBN_COVER_CACHE_FOCUS)*1000 + offset;
+      if (collectionAbs((float)a) < collectionAbs((float)b) ||
+          (collectionAbs((float)a) == collectionAbs((float)b) && i == PSBBN_COVER_CACHE_FOCUS)) targets[j] = -1;
+      else targets[i] = -1;
+    }
+  }
+}
 
 int lunaNavWrap(int total, int index) {
   if (total <= 0)
@@ -197,5 +367,5 @@ int lunaNavMarkedPage(const uint8_t *marked, int total, int index, int pageSize,
 }
 
 UILibraryView lunaNavNextView(UILibraryView view) {
-  return (UILibraryView)((view + 1) % 5);
+  return (UILibraryView)((view + 1) % 4);
 }

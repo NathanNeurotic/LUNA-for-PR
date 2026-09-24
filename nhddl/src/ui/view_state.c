@@ -10,7 +10,7 @@
 static const char lastViewPath[] = "/lastView.txt";
 static const char lastViewTempPath[] = "/lastView.txt.tmp";
 static const char *const viewNames[] = {
-    "classic", "collection", "grid", "constellation", "orbit"};
+    "classic", "collection", "grid", "orbit"};
 
 static struct DeviceMapEntry *viewDevice(Target *target) {
   if (target == NULL || target->device == NULL)

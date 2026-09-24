@@ -117,13 +117,17 @@ static void drawOrbitGuide(int centerX, int centerY, int radiusX, int radiusY) {
 
 static void drawOrbitFooter(void) {
   int baseY = gsGlobal->Height - footerHeight + 8;
-  int circleX = 34;
-  int crossX = gsGlobal->Width / 2 - 42;
-  int triangleX = gsGlobal->Width - 132;
+  int circleX = 26;
+  int squareX = gsGlobal->Width * 27 / 100;
+  int crossX = gsGlobal->Width * 52 / 100;
+  int triangleX = gsGlobal->Width * 76 / 100;
 
   drawIconWindow(circleX, baseY, 0, gsGlobal->Height, 8, FontMainColor, ALIGN_CENTER, ICON_CIRCLE);
-  drawTextWindow(circleX + getIconWidth(ICON_CIRCLE) + 6, baseY, crossX - 8,
+  drawTextWindow(circleX + getIconWidth(ICON_CIRCLE) + 6, baseY, squareX - 8,
                  gsGlobal->Height, 8, FontMainColor, ALIGN_VCENTER, "Classic");
+  drawIconWindow(squareX, baseY, 0, gsGlobal->Height, 8, FontMainColor, ALIGN_CENTER, ICON_SQUARE);
+  drawTextWindow(squareX + getIconWidth(ICON_SQUARE) + 6, baseY, crossX - 8,
+                 gsGlobal->Height, 8, FontMainColor, ALIGN_VCENTER, "Random");
   drawIconWindow(crossX, baseY, 0, gsGlobal->Height, 8, FontMainColor, ALIGN_CENTER, ICON_CROSS);
   drawTextWindow(crossX + getIconWidth(ICON_CROSS) + 6, baseY, triangleX - 8,
                  gsGlobal->Height, 8, FontMainColor, ALIGN_VCENTER, "Launch");
@@ -134,7 +138,7 @@ static void drawOrbitFooter(void) {
 }
 
 void drawOrbit(TargetList *titles, int selectedTitleIdx, GSTEXTURE **covers, int flowOffset,
-               uint32_t frameNowMs) {
+               int randomActive, uint32_t frameNowMs) {
   const int top = headerHeight + 8;
   const int bottom = gsGlobal->Height - footerHeight - 8;
   const int centerX = gsGlobal->Width / 2;
@@ -157,6 +161,10 @@ void drawOrbit(TargetList *titles, int selectedTitleIdx, GSTEXTURE **covers, int
   drawTextWindow(keepoutArea + 10, headerHeight - getFontLineHeight(),
                  gsGlobal->Width - keepoutArea, 0, 6,
                  HeaderTextColor, ALIGN_LEFT, "ORBIT");
+  if (randomActive)
+    drawTextWindow(gsGlobal->Width / 2, headerHeight - getFontLineHeight(),
+                   gsGlobal->Width - keepoutArea - 8, 0, 6,
+                   FontMainColor, ALIGN_RIGHT, "RANDOM SCAN");
   drawOrbitGuide(centerX, centerY, radiusX, radiusY);
 
   for (cacheIdx = 0; cacheIdx < PSBBN_COVER_CACHE_COUNT; cacheIdx++) {

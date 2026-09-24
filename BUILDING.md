@@ -98,9 +98,8 @@ each incoming row follows its outgoing row after a second short delay. Travel is
 limited to roughly one thumbnail width and paired with a fade so the cascade
 does not cover the large selected-art panel. Input is gated only while the
 cascade is visibly moving.
-Circle cycles Classic, Collection, Grid, Constellation, and Orbit. Artwork is
-released when the next view uses a different cache family; the direct
-Constellation-to-Orbit transition keeps the shared PSBBN cache resident.
+Circle cycles Classic, Collection, Grid, and Orbit. Artwork is released when
+the next view uses a different cache family.
 
 L1 and L2 share the backward path; R1 and R2 share the forward path. Grid does
 not act on the initial press. Releasing before `GRID_FAST_TRACK_HOLD_MS`
@@ -124,51 +123,13 @@ After Grid changes, verify all four D-pad directions, page entry in both
 directions, first/last-page wrapping, top-to-bottom row timing, held input after
 each cascade, tap and hold behavior for L1/L2/R1/R2, release after several fast
 steps, direction reversal during fast-track, partial final pages, missing-art cells,
-all five view transitions, and return to Classic without artwork corruption.
+all four view transitions, and return to Classic without artwork corruption.
 File presence and a successful build do not replace the rendered PCSX2 check.
-
-## Constellation geometry and Random control
-
-Constellation reuses Collection's ten-entry PSBBN cache. Do not allocate a
-second node-art cache: the shared path already retains two full-resolution
-textures near visual focus and eight 64x64 thumbnails for the remaining nodes.
-The irregular chart is controlled by these arrays in `nhddl/src/ui/gui.c`:
-
-```c
-constellationX[]
-constellationY[]
-constellationSize[]
-constellationConnections[][2]
-```
-
-Coordinates are expressed in thousandths of the usable screen area. Keep the
-focal anchor at `PSBBN_COVER_CACHE_FOCUS`, preserve clear space beneath it for
-the selected-title plaque, and keep every small node inside the title/footer
-safe areas. Navigation interpolates artwork between anchors using the same
-420 ms moving-focus state as Collection; changing only the anchor arrays must
-not change cache residency or artwork loading.
-
-Square is Constellation's one-press Random control. It mixes the current title
-with the UI timer, chooses an offset from `1` through `total - 1`, and therefore
-cannot return the already selected title. A direct jump is intentionally not
-used: it would miss the adjacent-cache recycle path and synchronously decode all
-ten covers in one frame. Instead, `CONSTELLATION_RANDOM_STEP_MS` advances toward
-the destination along the shorter direction at one adjacent node every 85 ms.
-Each step recycles nine cache entries and loads one PNG. `RANDOM SCAN` identifies
-the active traversal, and any deliberate non-Square input cancels it immediately.
-A Square press latch prevents retriggering until release without blocking UI
-rendering while the button remains held.
-
-After Constellation changes, verify forward/reverse movement, held movement,
-wraparound, several short and long Square scans, cancellation with manual input,
-missing square art, all five Circle view
-transitions, launch, options, focal title/counter agreement, and absence of
-texture corruption after returning to Collection and Classic.
 
 ## Orbit geometry
 
 Orbit reuses the ten-entry PSBBN cache and the same 420 ms moving-focus state
-as Collection and Constellation. The selected cover is the front point of a
+as Collection. The selected cover is the front point of a
 tilted ring and must remain centered and front-facing. The other nine covers
 are textured quadrilaterals: their horizontal projection narrows, their side
 edges slope, and their size, brightness, and opacity fall with depth. The rear
@@ -178,9 +139,17 @@ separate Orbit texture pool.
 
 After Orbit changes, verify exact focal centering, forward and reverse rotation,
 held movement, mid-glide reversal, wraparound, short libraries, missing art,
-title/counter handoff, and the Constellation-to-Orbit cache-preserving switch.
+title/counter handoff, and artwork recovery when switching views.
 The textured quad slope and rear-to-front overlap require a rendered PCSX2
 check; a successful build alone is not sufficient.
+
+Square starts Orbit's one-press Random Scan. It mixes the current title with
+the UI timer and chooses a different title. `ORBIT_RANDOM_STEP_MS` advances
+toward that title along the shorter direction, one adjacent cache position
+every 85 ms. Each step recycles nine cache entries and loads one new PNG.
+`RANDOM SCAN` identifies the active traversal. Any deliberate non-Square input
+cancels it, and holding Square does not retrigger it. Verify short and long
+scans, cancellation, wraparound, and the selected title and counter at arrival.
 
 ## Background-star atlas
 

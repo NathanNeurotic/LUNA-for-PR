@@ -3,6 +3,7 @@
 #define LUNA_UI_VIEWS_H
 
 #include "target.h"
+#include "ui/navigation.h"
 #include <gsKit.h>
 #include <stdint.h>
 
@@ -13,14 +14,13 @@ void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPag
                    int favoritesOnly, int coverPending, int coverTransitionProgress,
                    uint32_t frameNowMs);
 void drawPSBBNCollection(TargetList *titles, int selectedTitleIdx, GSTEXTURE **covers,
-                         int flowOffset, int favoritesOnly, uint32_t frameNowMs);
+                         int flowOffset, int favoritesOnly, uint32_t frameNowMs,
+                         const LunaCollectionMotion *motion);
 void drawPSBBNGrid(TargetList *titles, int selectedTitleIdx, int activeWindowBase,
                    int activeWindowBuffer, int incomingWindowBase, int incomingWindowBuffer,
                    int selectedCoverBuffer, int cascadeDirection, int cascadeProgress,
                    uint32_t frameNowMs);
-void drawConstellation(TargetList *titles, int selectedTitleIdx, GSTEXTURE **covers,
-                       int flowOffset, int randomActive, uint32_t frameNowMs);
 void drawOrbit(TargetList *titles, int selectedTitleIdx, GSTEXTURE **covers,
-               int flowOffset, uint32_t frameNowMs);
+               int flowOffset, int randomActive, uint32_t frameNowMs);
 
 #endif

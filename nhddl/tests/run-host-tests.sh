@@ -8,3 +8,7 @@ mkdir -p "$build_dir"
   src/ui/navigation.c tests/test_navigation.c \
   -o "$build_dir/test_navigation"
 "$build_dir/test_navigation"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Wno-unused-const-variable -Wno-calloc-transposed-args \
+  -Itests/stubs -Iinclude src/ui/navigation.c src/ui/art_cache.c tests/test_art_cache.c \
+  -o "$build_dir/test_art_cache"
+"$build_dir/test_art_cache"

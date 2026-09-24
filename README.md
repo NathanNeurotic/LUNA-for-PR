@@ -175,12 +175,11 @@ both the NHDDL-derived frontend and the Neutrino-derived game runtime.
 
 | Area | LUNA addition |
 | --- | --- |
-| Library interface | A PS2-inspired glass interface with an animated star field, crystal elements, LUNA branding, and five switchable library views. |
+| Library interface | A PS2-inspired glass interface with an animated star field, crystal elements, LUNA branding, and four switchable library views. |
 | Classic view | A refined list-and-cover layout with a rotating disc label, Favorites controls, and paired cover/disc artwork. |
 | Collection view | A PSBBN-inspired cover flow with animated focus changes and a Collection/Favorites filter. |
 | Grid view | A 4x4 artwork grid with paged caching, row-cascade transitions, large selected-cover preview, and fast-track shoulder navigation. |
-| Constellation view | A spatial cover map with animated focus movement and a Square-button Random Scan that avoids reselecting the current title. |
-| Orbit view | A depth-sorted ring of covers with perspective, fading, and shared artwork caching. |
+| Orbit view | A depth-sorted ring of covers with perspective, fading, shared artwork caching, and a Square-button Random Scan that avoids reselecting the current title. |
 | Favorites | Per-drive Favorites stored in `/LUNA/favorites.txt`, shared by Classic and Collection without modifying the game library. |
 | Artwork | OPL-compatible covers plus optional disc labels and PSBBN-style square artwork, with view-specific caching and GS VRAM recovery. |
 | Configured storage scan | The library accepts ATA, HDL, and USB devices. The shipped configuration uses internal ATA/exFAT and avoids waiting for a nonexistent second mass-storage device. |
@@ -192,13 +191,11 @@ both the NHDDL-derived frontend and the Neutrino-derived game runtime.
 
 ## Library views and controls
 
-Press **Circle** to cycle through **Classic**, **Collection**, **Grid**,
-**Constellation**, and **Orbit**.
+Press **Circle** to cycle through **Classic**, **Collection**, **Grid**, and **Orbit**.
 
 ### Views in motion
 
-Four of the five library views are shown below. The previews use sample game
-artwork; Constellation is not pictured.
+The four library views are shown below. The previews use sample game artwork.
 
 <table>
   <tr>
@@ -217,7 +214,7 @@ artwork; Constellation is not pictured.
 - **Square in Classic:** add or remove the selected game from Favorites.
 - **Select in Classic or Collection:** switch between the full library and
   Favorites.
-- **Square in Constellation:** start Random Scan. Any deliberate navigation
+- **Square in Orbit:** start Random Scan. Any deliberate navigation
   input cancels it.
 - **L1/L2 or R1/R2 in Grid:** tap for one page or hold for fast-track paging.
   Artwork loading resumes only at the final page when the buttons are released.
@@ -240,7 +237,7 @@ LUNA continues to use OPL-compatible title IDs and PNG artwork names:
 Use
 [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
 to obtain and prepare the square PSBBN artwork expected by Collection, Grid,
-Constellation, and Orbit.
+and Orbit.
 
 ## Storage and configuration
 

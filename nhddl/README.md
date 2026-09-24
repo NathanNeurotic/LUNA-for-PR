@@ -164,7 +164,7 @@ NHDDL uses the same file naming convention and file format used by OPL.
 Just put **140x200 PNG** files named `<title ID>_COV.png` (e.g. `SLUS_200.02_COV.png`) into the `ART` directory on the root of your device.  
 If unsure where to get your cover art from, check out the latest version of [OPL Manager](https://oplmanager.com).
 
-LUNA's Collection, Grid, Constellation, and Orbit views use optional **256x256
+LUNA's Collection, Grid, and Orbit views use optional **256x256
 PNG** artwork named `<title ID>.png` under `ART/PSBBN/`. Use
 [OrbitPS2 Manager — LUNA Edition](https://github.com/dnunezx/OrbitPS2-Manager-LUNA-edition)
 to obtain and prepare this PSBBN artwork.

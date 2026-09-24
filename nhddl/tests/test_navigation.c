@@ -65,8 +65,7 @@ static void testRouting(void) {
   }
   assert(lunaNavNextView(UI_VIEW_CLASSIC) == UI_VIEW_PSBBN);
   assert(lunaNavNextView(UI_VIEW_PSBBN) == UI_VIEW_GRID);
-  assert(lunaNavNextView(UI_VIEW_GRID) == UI_VIEW_CONSTELLATION);
-  assert(lunaNavNextView(UI_VIEW_CONSTELLATION) == UI_VIEW_ORBIT);
+  assert(lunaNavNextView(UI_VIEW_GRID) == UI_VIEW_ORBIT);
   assert(lunaNavNextView(UI_VIEW_ORBIT) == UI_VIEW_CLASSIC);
 }
 
@@ -86,6 +85,156 @@ static void testMarkedNavigation(void) {
   assert(lunaNavMarkedPage(marked, 8, 1, 2, -1) == 7);
 }
 
+static float absolute(float value) { return value < 0 ? -value : value; }
+
+static void collectionTicks(LunaCollectionMotion *s, int total, int direction,
+                             int shoulder, int duration, int frameMs) {
+  while (duration > 0) {
+    int step = duration < frameMs ? duration : frameMs;
+    lunaCollectionUpdate(s, total, direction, shoulder, 5, s->lastMs + step);
+    duration -= step;
+  }
+}
+
+static void testCollectionTaps(void) {
+  LunaCollectionMotion s;
+  lunaCollectionReset(&s, 4, 0);
+  lunaCollectionUpdate(&s, 30, 1, 0, 5, 0);
+  collectionTicks(&s, 30, 1, 0, 20, 10);
+  collectionTicks(&s, 30, 0, 0, 400, 10);
+  assert(s.focus == 5 && s.position == 0 && s.mode == COLLECTION_IDLE);
+  // Three quick taps are three steps, even before the first glide completes.
+  for (int i = 0; i < 3; i++) {
+    collectionTicks(&s, 30, 1, 0, 20, 10);
+    collectionTicks(&s, 30, 0, 0, 40, 10);
+  }
+  collectionTicks(&s, 30, 0, 0, 400, 10);
+  assert(s.focus == 8 && s.position == 0);
+  lunaCollectionReset(&s, 0, 0);
+  collectionTicks(&s, 30, -1, 0, 20, 10);
+  collectionTicks(&s, 30, 0, 0, 400, 10);
+  assert(s.focus == 29 && s.position == 0);
+}
+
+static void testCollectionHoldAndRelease(void) {
+  LunaCollectionMotion s;
+  lunaCollectionReset(&s, 5, 0);
+  collectionTicks(&s, 100, 1, 0, 1500, 16);
+  assert(s.mode == COLLECTION_BROWSE && absolute(s.velocity - 6) < 0.01f);
+  for (int i = 0; i < 50; i++) {
+    float previous = s.velocity;
+    collectionTicks(&s, 100, 1, 0, 16, 16);
+    assert(absolute(previous - s.velocity) < 0.01f);
+    assert(absolute(s.position) <= 0.501f);
+    assert(absolute(s.target) <= 0.501f);
+  }
+  float before = s.focus + s.position;
+  collectionTicks(&s, 100, 0, 0, 240, 16);
+  assert(s.mode == COLLECTION_IDLE && s.position == 0);
+  assert(s.focus >= before && s.focus - before <= 1.01f);
+  // A live reversal brakes continuously rather than resetting the velocity.
+  collectionTicks(&s, 100, 1, 0, 1500, 16);
+  float previous = s.velocity;
+  collectionTicks(&s, 100, -1, 0, 16, 16);
+  assert(s.velocity > 0 && previous - s.velocity < 0.97f);
+  collectionTicks(&s, 100, -1, 0, 1000, 16);
+  assert(s.velocity < -5.9f);
+  lunaCollectionBrake(&s);
+  collectionTicks(&s, 100, 0, 0, 240, 16);
+  assert(s.mode == COLLECTION_IDLE);
+}
+
+static void testCollectionScan(void) {
+  LunaCollectionMotion s;
+  lunaCollectionReset(&s, 4, 0);
+  collectionTicks(&s, 100, 1, 1, 20, 10);
+  assert(s.focus == 9 && s.mode == COLLECTION_JUMP);
+  collectionTicks(&s, 100, 0, 0, 400, 10);
+  assert(s.focus == 9); // Release never adds another chunk.
+  collectionTicks(&s, 100, 1, 1, 2000, 16);
+  assert(s.mode == COLLECTION_SCAN && absolute(s.velocity - 10) < 0.01f);
+  assert(s.scanLabelMs == COLLECTION_SCAN_LABEL_MS);
+  float before = s.focus + s.position;
+  collectionTicks(&s, 100, 0, 0, 180, 10);
+  assert(s.mode == COLLECTION_IDLE && s.focus - before <= 1.01f && s.focus >= before);
+  assert(s.scanLabelMs > 0);
+  collectionTicks(&s, 100, 0, 0, 500, 10);
+  assert(s.scanLabelMs == 0);
+  lunaCollectionReset(&s, 4, 0);
+  collectionTicks(&s, 100, 1, 2, 2000, 16);
+  assert(s.focus == 9 && s.mode == COLLECTION_IDLE); // L2/R2 don't fast scan.
+  assert(lunaCollectionPage(30, 29, 1, 5) == 0);
+  assert(lunaCollectionPage(30, 0, -1, 5) == 29);
+  assert(lunaCollectionPage(30, 27, 1, 5) == 29);
+  assert(lunaCollectionPage(30, 2, -1, 5) == 0);
+}
+
+static void testCollectionTimingAndSmallLists(void) {
+  LunaCollectionMotion a, b;
+  lunaCollectionReset(&a, 5, 0);
+  lunaCollectionReset(&b, 5, 0);
+  collectionTicks(&a, 100, 1, 0, 3000, 16);
+  collectionTicks(&b, 100, 1, 0, 3000, 20);
+  assert(absolute((a.focus + a.position) - (b.focus + b.position)) < 0.03f);
+  float before = a.focus + a.position;
+  lunaCollectionUpdate(&a, 100, 1, 0, 5, a.lastMs + 5000);
+  assert(a.focus + a.position - before < 0.21f);
+  lunaCollectionReset(&a, 0, UINT32_MAX - 20);
+  collectionTicks(&a, 100, 1, 0, 20, 10);
+  collectionTicks(&a, 100, 0, 0, 400, 10);
+  assert(a.focus == 1 && a.mode == COLLECTION_IDLE);
+  for (int total = 0; total <= 4; total++) {
+    lunaCollectionReset(&a, 0, 0);
+    collectionTicks(&a, total, 1, 1, 4000, 16);
+    assert(a.focus == -1 || (a.focus >= 0 && a.focus < total));
+    assert(absolute(a.velocity) <= 2.01f);
+    if (total <= 1) assert(a.mode == COLLECTION_IDLE);
+  }
+  // Long held navigation keeps local coordinates bounded across many wraps.
+  lunaCollectionReset(&a, 0, 0);
+  collectionTicks(&a, 7, -1, 1, 600000, 20);
+  assert(a.focus >= 0 && a.focus < 7);
+  assert(absolute(a.position) <= 0.501f && absolute(a.target) <= 0.501f);
+}
+
+static void testCollectionCacheLayout(void) {
+  int targets[PSBBN_COVER_CACHE_COUNT];
+  for (int total = 0; total <= 14; total++) {
+    for (int focus = 0; focus < (total ? total : 1); focus++) {
+      for (int offset = -500; offset <= 500; offset += 100) {
+        lunaCollectionCacheLayout(total, focus, offset, targets);
+        int count = 0;
+        for (int i = 0; i < PSBBN_COVER_CACHE_COUNT; i++) {
+          if (targets[i] < 0) continue;
+          count++;
+          assert(targets[i] < total);
+          for (int j = 0; j < i; j++) assert(targets[i] != targets[j]);
+        }
+        assert(count == (total < PSBBN_COVER_CACHE_COUNT ? total : PSBBN_COVER_CACHE_COUNT));
+        if (total) assert(targets[PSBBN_COVER_CACHE_FOCUS] == focus);
+      }
+    }
+  }
+}
+
+static void testCollectionBrakeBoundaries(void) {
+  for (int direction = -1; direction <= 1; direction += 2) {
+    for (int offset = -499; offset <= 499; offset++) {
+      LunaCollectionMotion s;
+      lunaCollectionReset(&s, 30, 0);
+      s.position = offset / 1000.0f;
+      s.velocity = direction * 10.0f;
+      s.mode = COLLECTION_SCAN;
+      float before = s.focus + s.position;
+      lunaCollectionBrake(&s);
+      collectionTicks(&s, 100, 0, 0, 200, 10);
+      assert(s.mode == COLLECTION_IDLE && s.position == 0);
+      assert((s.focus - before) * direction >= 0);
+      assert(absolute(s.focus - before) <= 1.001f);
+    }
+  }
+}
+
 int main(void) {
   testWrapping();
   testGridNavigation();
@@ -93,6 +242,12 @@ int main(void) {
   testTiming();
   testRouting();
   testMarkedNavigation();
+  testCollectionTaps();
+  testCollectionHoldAndRelease();
+  testCollectionScan();
+  testCollectionTimingAndSmallLists();
+  testCollectionCacheLayout();
+  testCollectionBrakeBoundaries();
   puts("navigation tests passed");
   return 0;
 }
