@@ -257,14 +257,17 @@ Writable state stays with the game drive:
 /ART/
 /LUNA/cache.bin
 /LUNA/lastTitle.bin
+/LUNA/lastView.txt
 /LUNA/favorites.txt
 /LUNA/global.yaml
 /LUNA/<game name>.yaml
 ```
 
-This means swapping hard drives also swaps their library, artwork, Favorites,
-cache, and per-game configuration. Existing `/nhddl` cache and option files can
-still be read for migration, but new writes go to `/LUNA`.
+LUNA saves the selected library view as `lastView.txt` whenever Circle switches
+views and restores it on the next start. A missing or invalid file starts in
+Classic. Swapping hard drives also swaps their library, artwork, Favorites,
+saved view, cache, and per-game configuration. Existing `/nhddl` cache and
+option files can still be read for migration, but new writes go to `/LUNA`.
 
 ## Source layout
 

@@ -28,6 +28,7 @@ set(SOURCES
     src/ui/graphics.c
     src/ui/handoff.c
   src/ui/navigation.c
+  src/ui/view_state.c
   src/ui/art_cache.c
     src/ui/view_classic.c
     src/ui/view_collection.c

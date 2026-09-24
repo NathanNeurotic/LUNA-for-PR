@@ -12,6 +12,7 @@
 #include "ui/pad.h"
 #include "ui/ui.h"
 #include "ui/view_internal.h"
+#include "ui/view_state.h"
 #include <dmaKit.h>
 #include <errno.h>
 #include <gsKit.h>
@@ -670,6 +671,7 @@ int uiLoop(TargetList *titles) {
     }
   }
   free(lastTitle);
+  view = loadLastLibraryView(curTarget);
 
   favoriteFlags = calloc((size_t)titles->total, sizeof(*favoriteFlags));
   if (favoriteFlags == NULL) {
@@ -683,9 +685,11 @@ int uiLoop(TargetList *titles) {
     goto exit;
   }
 
-  // Load cover art
-  isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
-  isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
+  // Classic cover and disc textures are unnecessary when restoring another view.
+  if (view == UI_VIEW_CLASSIC) {
+    isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
+    isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
+  }
 
   // Main UI loop
   int frameCount = 0;
@@ -1254,6 +1258,8 @@ int uiLoop(TargetList *titles) {
         isCoverUninitialized = loadCoverArt(curTarget->device, curTarget->id);
         isDiscUninitialized = loadDiscArt(curTarget->device, curTarget->id);
       }
+      if (saveLastLibraryView(curTarget, view))
+        DPRINTF("WARN: Could not save selected library view\n");
     } else if (view == UI_VIEW_CLASSIC && (input & PAD_SQUARE) && !favoriteButtonHeld &&
                (!favoritesOnly || lunaNavMarkedCount(favoriteFlags, titles->total) > 0)) {
       int wasFavorite = favoriteFlags[selectedTitleIdx] != 0;

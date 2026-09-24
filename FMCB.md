@@ -2,7 +2,8 @@
 
 This layout runs the complete LUNA and Neutrino runtime from an FMCB memory
 card in slot 1 (`mc0:`). The supplied configuration reads games, artwork,
-caches, options, and Favorites from the internal ATA/exFAT hard drive.
+caches, options, Favorites, and the saved library view from the internal
+ATA/exFAT hard drive.
 
 ## Install
 

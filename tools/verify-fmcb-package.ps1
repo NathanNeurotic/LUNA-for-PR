@@ -40,7 +40,7 @@ if (-not ($config -match '^return_path:\s*mc0:/APP_LUNA/luna\.elf\s*$')) {
     throw 'luna.yaml does not return directly to mc0:/APP_LUNA/luna.elf.'
 }
 
-foreach ($forbidden in @('ART', 'favorites.txt', 'cache.bin', 'lastTitle.bin', 'global.yaml')) {
+foreach ($forbidden in @('ART', 'favorites.txt', 'cache.bin', 'lastTitle.bin', 'lastView.txt', 'global.yaml')) {
     if (Get-ChildItem -LiteralPath $app -Recurse -Force |
         Where-Object { $_.Name -ieq $forbidden }) {
         throw "Per-drive data must not be packaged on the memory card: $forbidden"
