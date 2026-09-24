@@ -3,4 +3,4 @@
 mode: ata # supported modes: ata, mx4sio, udpfs, usb, ilink, mmce, hdl. If not present or commented out, all devices will be used to search for ISO files
 mode: mmce # multiple modes are supported via multiple mode strings
 #udpfs_ip: 192.168.1.6 # PS2 IP address for UDPFS mode (commented out)
-return_path: mc0:/LUNA/luna.elf # Direct return to the fixed-slot FMCB installation
+return_path: mc0:/APP_LUNA/luna.elf # Direct return to the fixed-slot FMCB installation

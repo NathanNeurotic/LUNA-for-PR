@@ -36,8 +36,8 @@ $config = Get-Content -LiteralPath (Join-Path $app 'luna.yaml')
 if (-not ($config -match '^mode:\s*ata\s*$')) {
     throw 'luna.yaml does not restrict LUNA to the ATA backend.'
 }
-if (-not ($config -match '^return_path:\s*mc0:/LUNA/luna\.elf\s*$')) {
-    throw 'luna.yaml does not return directly to mc0:/LUNA/luna.elf.'
+if (-not ($config -match '^return_path:\s*mc0:/APP_LUNA/luna\.elf\s*$')) {
+    throw 'luna.yaml does not return directly to mc0:/APP_LUNA/luna.elf.'
 }
 
 foreach ($forbidden in @('ART', 'favorites.txt', 'cache.bin', 'lastTitle.bin', 'global.yaml')) {

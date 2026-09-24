@@ -305,7 +305,7 @@ forward slashes so Linux extractors retain the `APP_LUNA/config` and
 
 The package copies `nhddl/examples/luna.yaml` as `APP_LUNA/luna.yaml`. That
 configuration selects only `mode: ata` and sets
-`return_path: mc0:/LUNA/luna.elf`. `APP_LUNA` must be copied to `mc0:/LUNA`.
+`return_path: mc0:/APP_LUNA/luna.elf`. `APP_LUNA` must be copied to `mc0:/APP_LUNA`.
 The verifier rejects any packaged `ART`, Favorites, cache, last-title, or global
 options file because those belong to each ATA hard drive. The former HDD-chain
 configuration remains available as `nhddl/examples/luna-hdd.yaml`.

@@ -7,22 +7,21 @@ caches, options, and Favorites from the internal ATA/exFAT hard drive.
 ## Install
 
 1. Back up the FMCB memory card and the target hard drive.
-2. Copy the packaged `APP_LUNA` directory to the root of the memory card and
-   rename the copied directory to `LUNA` if the copy tool does not preserve
-   that destination name.
+2. Copy the packaged `APP_LUNA` directory to the root of the memory card,
+   keeping its name `APP_LUNA`.
 3. Confirm these paths exist exactly as shown; memory-card paths can be
    case-sensitive:
 
    ```text
-   mc0:/LUNA/luna.elf
-   mc0:/LUNA/luna.yaml
-   mc0:/LUNA/neutrino.elf
-   mc0:/LUNA/config/
-   mc0:/LUNA/modules/
+   mc0:/APP_LUNA/luna.elf
+   mc0:/APP_LUNA/luna.yaml
+   mc0:/APP_LUNA/neutrino.elf
+   mc0:/APP_LUNA/config/
+   mc0:/APP_LUNA/modules/
    ```
 
 4. In the Free McBoot Configurator, add a menu item named `LUNA` whose path is
-   `mc0:/LUNA/luna.elf`, then save the FMCB configuration.
+   `mc0:/APP_LUNA/luna.elf`, then save the FMCB configuration.
 5. Keep the game drive's existing ISO and artwork layout. LUNA scans only the
    ATA backend because the packaged `luna.yaml` contains `mode: ata`.
 
@@ -30,7 +29,7 @@ For USB games in v1.1.0, change `mode: ata` to `mode: usb` in
 `APP_LUNA/luna.yaml` before copying the folder to the memory card. This selects
 the USB game library; the default package remains configured for ATA.
 
-The packaged return target is `mc0:/LUNA/luna.elf`. A card intentionally used
+The packaged return target is `mc0:/APP_LUNA/luna.elf`. A card intentionally used
 in slot 2 must change both the FMCB menu entry and `return_path` in `luna.yaml`
 from `mc0:` to `mc1:`.
 
@@ -74,7 +73,7 @@ hardware. Verify the archive against `dist/SHA256SUMS.txt`.
 4. Launch a small known-good game and play long enough to exercise sustained
    HDD reads.
 5. Hold L1 + L2 + R1 + R2 + Start + Select for roughly one second. A successful
-   direct return reloads `mc0:/LUNA/luna.elf` without using the HDD boot chain.
+   direct return reloads `mc0:/APP_LUNA/luna.elf` without using the HDD boot chain.
 6. If the screen turns solid red, power off normally. The fail-closed return
    path intentionally refused to reset or reload after an unsafe shutdown.
 7. Relaunch the game and verify it still reads correctly. Power down and run a
