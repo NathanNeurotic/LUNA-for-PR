@@ -56,7 +56,19 @@ Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'neutrino.elf') -Destination $ap
 Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'version.txt') -Destination $app
 Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'config') -Destination $app -Recurse
 Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'modules') -Destination $app -Recurse
-Copy-Item -LiteralPath $packageReadme -Destination (Join-Path $package 'README.md')
+$packageReadmeText = [IO.File]::ReadAllText($packageReadme)
+if ($Version) {
+    $packageReadmeText = [regex]::Replace(
+        $packageReadmeText,
+        'LUNA-v[0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[0-9]+)?-FMCB-mc0\.zip',
+        $archiveName
+    )
+}
+[IO.File]::WriteAllText(
+    (Join-Path $package 'README.md'),
+    $packageReadmeText,
+    [Text.UTF8Encoding]::new($false)
+)
 
 $licenseSource = Join-Path $workspace 'LICENSES'
 if (Test-Path -LiteralPath $licenseSource) {
