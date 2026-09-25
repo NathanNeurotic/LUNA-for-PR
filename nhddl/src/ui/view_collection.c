@@ -116,8 +116,6 @@ static void drawCollectionFooter(void) {
   drawIconWindow(triangleX, baseY, 0, gsGlobal->Height, 6, FontMainColor, ALIGN_CENTER, ICON_TRIANGLE);
   drawTextWindow(triangleX + getIconWidth(ICON_TRIANGLE) + 6, baseY, gsGlobal->Width - keepoutArea,
                  gsGlobal->Height, 6, FontMainColor, ALIGN_VCENTER, "Options");
-  drawTextWindow(24, baseY + 26, gsGlobal->Width - 24, gsGlobal->Height, 6,
-                 HeaderTextColor, ALIGN_HCENTER, "Hold L2 / R2 to scan");
 }
 
 void formatPSBBNTitle(const char *source, char *destination, int maxWidth) {

@@ -118,6 +118,14 @@ int getIconWidth(IconType iconType) { return ICONS[iconType].width; }
 void drawIcon(float x, float y, int z, uint64_t color, IconType iconType) {
   Icon icon = ICONS[iconType];
 
+  // The triangle artwork sits two pixels higher within its 26-pixel tile.
+  if (iconType == ICON_TRIANGLE)
+    y += 2;
+
+  // Preserve the colors in the supplied face-button artwork.
+  if (iconType <= ICON_TRIANGLE)
+    color = GS_SETREG_RGBA(0x80, 0x80, 0x80, 0x80);
+
   gsKit_TexManager_bind(gsGlobal, icons);
   gsKit_set_primalpha(gsGlobal, GS_BLEND_BACK2FRONT, 0);
   gsKit_set_test(gsGlobal, GS_ATEST_OFF);
