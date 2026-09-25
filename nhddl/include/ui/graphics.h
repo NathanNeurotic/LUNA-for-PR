@@ -88,6 +88,9 @@ void drawIconWindow(int x1, int y1, int x2, int y2, int z, uint64_t color, uint8
 // Draws the logo at specified coordinates
 void drawLogo(float x, float y, int z);
 
+// Draws the embedded Classic scrollbar PNG at a chosen height.
+void drawClassicScrollbar(float x, float y, float height, int z);
+
 // Draws the user-supplied boot logo centered at x and scaled to width
 void drawBootLogo(float centerX, float y, float width, int z);
 

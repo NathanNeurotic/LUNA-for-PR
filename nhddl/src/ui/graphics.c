@@ -3,6 +3,7 @@
 #include "dprintf.h"
 #include "ui/dejavu_sans.h"
 #include "ui/icons.h"
+#include "ui/classic_scrollbar.h"
 #include <dmaKit.h>
 #include <gsKit.h>
 #include <gsToolkit.h>
@@ -19,6 +20,7 @@ GSTEXTURE **fontPages;
 // Graphics textures
 GSTEXTURE *icons;
 GSTEXTURE *logo;
+static GSTEXTURE *classicScrollbar;
 
 // Used font
 const struct BMFont font = BMFONT_DEJAVU_SANS;
@@ -55,6 +57,14 @@ int initGraphics() {
   }
   logo->Filter = GS_FILTER_LINEAR; // Enable bilinear filtering
 
+  classicScrollbar = calloc(sizeof(GSTEXTURE), 1);
+  if (gsKit_texture_png_mem(gsGlobal, classicScrollbar, CLASSIC_SCROLLBAR_PNG,
+                            SIZE_CLASSIC_SCROLLBAR_PNG, 0, 1)) {
+    DPRINTF("ERROR: Failed to load Classic scrollbar texture\n");
+    return -1;
+  }
+  classicScrollbar->Filter = GS_FILTER_LINEAR;
+
   return 0;
 }
 
@@ -70,7 +80,32 @@ void closeFont() {
   free(icons);
   free(logo->Mem);
   free(logo);
+  free(classicScrollbar->Mem);
+  free(classicScrollbar);
   return;
+}
+
+void drawClassicScrollbar(float x, float y, float height, int z) {
+  int previousAlphaTest = gsGlobal->Test->ATST;
+  int previousAlphaReference = gsGlobal->Test->AREF;
+  int previousAlphaFail = gsGlobal->Test->AFAIL;
+
+  gsKit_TexManager_bind(gsGlobal, classicScrollbar);
+  gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
+  gsGlobal->Test->ATST = 2;
+  gsGlobal->Test->AREF = 0x80;
+  gsGlobal->Test->AFAIL = 0;
+  gsKit_set_primalpha(gsGlobal, GS_BLEND_BACK2FRONT, 0);
+  gsKit_set_test(gsGlobal, GS_ATEST_ON);
+  gsKit_prim_sprite_texture(gsGlobal, classicScrollbar, x, y, 0.0f, 0.0f,
+                            x + classicScrollbar->Width, y + height,
+                            classicScrollbar->Width - 1, classicScrollbar->Height - 1,
+                            z, GS_SETREG_RGBA(0x80, 0x80, 0x80, 0x80));
+  gsGlobal->Test->ATST = previousAlphaTest;
+  gsGlobal->Test->AREF = previousAlphaReference;
+  gsGlobal->Test->AFAIL = previousAlphaFail;
+  gsKit_set_test(gsGlobal, GS_ATEST_ON);
+  gsKit_set_primalpha(gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
 }
 
 // Returns icon height

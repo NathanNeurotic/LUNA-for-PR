@@ -12,6 +12,9 @@
 #define DISC_ROTATION_PERIOD_MS 30000
 #define CLASSIC_SELECTION_GLOW_DURATION_MS 110
 #define CLASSIC_GLOW_ROW_SCALE 256
+#define CLASSIC_SCROLLBAR_HEIGHT 261
+#define CLASSIC_SCROLLBAR_WIDTH 15
+#define CLASSIC_SCROLLBAR_COVER_GAP 8
 
 static int coverArtX2;
 static int coverArtY2;
@@ -397,10 +400,29 @@ void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPag
   Target *curTitle = titles->first;
   int displayIdx = 0;
   int listStartY;
+  const int scrollbarVisible = displayTotal > maxTitlesPerPage && selectedDisplayIdx >= 0;
+  const int scrollbarInset = scrollbarVisible
+                                 ? CLASSIC_SCROLLBAR_WIDTH + CLASSIC_SCROLLBAR_COVER_GAP
+                                 : 0;
 
   titleY += getFontLineHeight() / 2;
   listStartY = titleY;
   classicGlowSync(selectedDisplayIdx, maxTitlesPerPage, curPage, frameNowMs);
+  if (scrollbarVisible) {
+    const int trackTop = listStartY + 2;
+    const int trackBottom = gsGlobal->Height - footerHeight - 6;
+    const int trackHeight = trackBottom - trackTop;
+    const int thumbHeight = trackHeight < CLASSIC_SCROLLBAR_HEIGHT
+                                ? trackHeight : CLASSIC_SCROLLBAR_HEIGHT;
+    const int thumbY = trackTop +
+                       (int)((int64_t)selectedDisplayIdx *
+                             (trackHeight - thumbHeight) / (displayTotal - 1));
+    // Leave a gap even beside the legacy cover frame; the cover stays above
+    // the scrollbar in depth as a second safeguard against overlap.
+    drawClassicScrollbar(coverArtX1 - CLASSIC_SCROLLBAR_WIDTH -
+                             CLASSIC_SCROLLBAR_COVER_GAP,
+                         thumbY, thumbHeight, 4);
+  }
   if (favoritesOnly && favoriteTotal == 0)
     drawTextWindow(baseX, titleY + getFontLineHeight() * 3, coverArtX1 - 12,
                    titleY + getFontLineHeight() * 7, 6, HeaderTextColor,
@@ -422,19 +444,21 @@ void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPag
       break;
     }
 
-    titleRight = favoriteFlags[curTitle->idx] ? coverArtX1 - 32 : coverArtX1 - 5;
+    titleRight = favoriteFlags[curTitle->idx]
+                     ? coverArtX1 - 32 - scrollbarInset
+                     : coverArtX1 - 5 - scrollbarInset;
 
     // Draw title name
     if (selectedTitleIdx == curTitle->idx) {
       const int glowY = classicGlowY(listStartY, getFontLineHeight(), frameNowMs);
 #ifdef LUNA_GLASS_UI
-      const int selectionRight = coverArtX1 - 12;
+      const int selectionRight = coverArtX1 - 12 - scrollbarInset;
       int textRight = baseX + getLineWidth(curTitle->name);
       if (textRight > titleRight)
         textRight = titleRight;
       drawPSBBNFocusGlow(baseX, glowY, selectionRight, textRight);
 #else
-      gsKit_prim_sprite(gsGlobal, baseX - 6, glowY - 2, coverArtX1 - 12, glowY + getFontLineHeight(), 1, ColorHighlight);
+      gsKit_prim_sprite(gsGlobal, baseX - 6, glowY - 2, coverArtX1 - 12 - scrollbarInset, glowY + getFontLineHeight(), 1, ColorHighlight);
       gsKit_prim_sprite(gsGlobal, baseX - 6, glowY - 2, baseX - 3, glowY + getFontLineHeight(), 2, ColorSelected);
 #endif
     }
@@ -449,7 +473,7 @@ void drawTitleList(TargetList *titles, int selectedTitleIdx, int maxTitlesPerPag
                       ((selectedTitleIdx == curTitle->idx) ? FontMainColor : HeaderTextColor), curTitle->name);
 #endif
     if (favoriteFlags[curTitle->idx])
-      drawFavoriteMarker(coverArtX1 - 23, titleY - getFontLineHeight() / 2, 7);
+      drawFavoriteMarker(coverArtX1 - 23 - scrollbarInset, titleY - getFontLineHeight() / 2, 7);
 
   next:
     curTitle = curTitle->next;
