@@ -5,8 +5,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-if ($Version -and $Version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
-    throw "Invalid version: $Version (expected vMAJOR.MINOR.PATCH)."
+if ($Version -and $Version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[0-9]+)?$') {
+    throw "Invalid version: $Version (expected vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-rc.N)."
 }
 
 $workspace = Split-Path -Parent $PSScriptRoot
@@ -21,6 +21,8 @@ $archive = Join-Path $dist $archiveName
 $launcher = Join-Path $dist $launcherName
 $launcherConfig = Join-Path $workspace 'nhddl/examples/luna.yaml'
 $neutrinoRoot = Join-Path $workspace 'neutrino/ee/loader'
+$fmcbReadme = Join-Path $workspace 'FMCB.md'
+$packageReadme = if (Test-Path -LiteralPath $fmcbReadme) { $fmcbReadme } else { Join-Path $workspace 'README.md' }
 $required = @(
     $launcher,
     $launcherConfig,
@@ -28,7 +30,7 @@ $required = @(
     (Join-Path $neutrinoRoot 'version.txt'),
     (Join-Path $neutrinoRoot 'config/system.toml'),
     (Join-Path $neutrinoRoot 'modules/ee_core.elf'),
-    (Join-Path $workspace 'FMCB.md')
+    $packageReadme
 )
 
 foreach ($path in $required) {
@@ -54,7 +56,7 @@ Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'neutrino.elf') -Destination $ap
 Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'version.txt') -Destination $app
 Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'config') -Destination $app -Recurse
 Copy-Item -LiteralPath (Join-Path $neutrinoRoot 'modules') -Destination $app -Recurse
-Copy-Item -LiteralPath (Join-Path $workspace 'FMCB.md') -Destination (Join-Path $package 'README.md')
+Copy-Item -LiteralPath $packageReadme -Destination (Join-Path $package 'README.md')
 
 $licenseSource = Join-Path $workspace 'LICENSES'
 if (Test-Path -LiteralPath $licenseSource) {
