@@ -88,10 +88,10 @@ static void testMarkedNavigation(void) {
 static float absolute(float value) { return value < 0 ? -value : value; }
 
 static void collectionTicks(LunaCollectionMotion *s, int total, int direction,
-                             int shoulder, int duration, int frameMs) {
+                             int scanHeld, int duration, int frameMs) {
   while (duration > 0) {
     int step = duration < frameMs ? duration : frameMs;
-    lunaCollectionUpdate(s, total, direction, shoulder, 5, s->lastMs + step);
+    lunaCollectionUpdate(s, total, direction, scanHeld, s->lastMs + step);
     duration -= step;
   }
 }
@@ -99,7 +99,7 @@ static void collectionTicks(LunaCollectionMotion *s, int total, int direction,
 static void testCollectionTaps(void) {
   LunaCollectionMotion s;
   lunaCollectionReset(&s, 4, 0);
-  lunaCollectionUpdate(&s, 30, 1, 0, 5, 0);
+  lunaCollectionUpdate(&s, 30, 1, 0, 0);
   collectionTicks(&s, 30, 1, 0, 20, 10);
   collectionTicks(&s, 30, 0, 0, 400, 10);
   assert(s.focus == 5 && s.position == 0 && s.mode == COLLECTION_IDLE);
@@ -148,9 +148,13 @@ static void testCollectionScan(void) {
   LunaCollectionMotion s;
   lunaCollectionReset(&s, 4, 0);
   collectionTicks(&s, 100, 1, 1, 20, 10);
-  assert(s.focus == 9 && s.mode == COLLECTION_JUMP);
+  assert(s.focus == 4 && s.position == 0 && s.mode == COLLECTION_IDLE);
   collectionTicks(&s, 100, 0, 0, 400, 10);
-  assert(s.focus == 9); // Release never adds another chunk.
+  assert(s.focus == 4 && s.position == 0); // A tap does nothing.
+  collectionTicks(&s, 100, 1, 1, 440, 10);
+  assert(s.focus == 4 && s.position == 0 && s.mode == COLLECTION_IDLE);
+  collectionTicks(&s, 100, 1, 1, 20, 10);
+  assert(s.mode == COLLECTION_SCAN && s.focus == 4);
   collectionTicks(&s, 100, 1, 1, 2000, 16);
   assert(s.mode == COLLECTION_SCAN && absolute(s.velocity - 10) < 0.01f);
   assert(s.scanLabelMs == COLLECTION_SCAN_LABEL_MS);
@@ -160,13 +164,14 @@ static void testCollectionScan(void) {
   assert(s.scanLabelMs > 0);
   collectionTicks(&s, 100, 0, 0, 500, 10);
   assert(s.scanLabelMs == 0);
-  lunaCollectionReset(&s, 4, 0);
-  collectionTicks(&s, 100, 1, 2, 2000, 16);
-  assert(s.focus == 9 && s.mode == COLLECTION_IDLE); // L2/R2 don't fast scan.
-  assert(lunaCollectionPage(30, 29, 1, 5) == 0);
-  assert(lunaCollectionPage(30, 0, -1, 5) == 29);
-  assert(lunaCollectionPage(30, 27, 1, 5) == 29);
-  assert(lunaCollectionPage(30, 2, -1, 5) == 0);
+
+  lunaCollectionReset(&s, 50, 0);
+  collectionTicks(&s, 100, -1, 1, 2000, 16);
+  assert(s.mode == COLLECTION_SCAN && absolute(s.velocity + 10) < 0.01f);
+  before = s.focus + s.position;
+  collectionTicks(&s, 100, 1, 1, 16, 16);
+  assert(s.mode == COLLECTION_SCAN && s.velocity < 0 && s.velocity > -10);
+  assert(before - (s.focus + s.position) < 0.2f); // Reversal does not jump.
 }
 
 static void testCollectionTimingAndSmallLists(void) {
@@ -177,7 +182,7 @@ static void testCollectionTimingAndSmallLists(void) {
   collectionTicks(&b, 100, 1, 0, 3000, 20);
   assert(absolute((a.focus + a.position) - (b.focus + b.position)) < 0.03f);
   float before = a.focus + a.position;
-  lunaCollectionUpdate(&a, 100, 1, 0, 5, a.lastMs + 5000);
+  lunaCollectionUpdate(&a, 100, 1, 0, a.lastMs + 5000);
   assert(a.focus + a.position - before < 0.21f);
   lunaCollectionReset(&a, 0, UINT32_MAX - 20);
   collectionTicks(&a, 100, 1, 0, 20, 10);

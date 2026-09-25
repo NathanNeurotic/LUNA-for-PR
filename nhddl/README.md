@@ -17,12 +17,16 @@ Since NHDDL only launches Neutrino, PADEMU, IGR, IGS, cheats and other features 
 
 ## Usage
 
-### Title list controls
+### Classic title list controls
 
  - Press **Up** on the d-pad to select the **previous title** in the list
  - Press **Down** on the d-pad to select the **next title** in the list
  - Press **L1** or **L2** to switch to the **previous page** or go to the **start of the list**
  - Press **R1** or **R2** to switch to the **next page** or go to the **end of the list**
+
+In Luna's Collection view, tap Left/Up or Right/Down to move one cover, or hold
+to browse. Hold L2/R2 to fast scan after a brief pause. Quick L2/R2 presses and
+L1/R1 have no Collection action.
 
 In Luna's Grid view, release a shoulder before half a second for one page. Hold
 L1/L2 or R1/R2 for at least half a second to fast-track through lightweight

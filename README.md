@@ -152,9 +152,9 @@ being used. Keeping the scan focused on one device helps the library load faster
 and makes startup more predictable; other device modes can be enabled when
 needed.
 The supplied package is configured for an internal ATA/exFAT drive. LUNA's
-library scans ATA, HDL, or USB games when that mode is selected in `luna.yaml`.
-The underlying NHDDL/Neutrino stack recognizes the modes below, but LUNA's
-library does not scan MX4SIO, MMCE, iLink, or UDPFS devices:
+library scans ATA and HDL devices when available. USB, MX4SIO, MMCE, iLink,
+and UDPFS are scanned only when their `mode:` entry is explicitly enabled in
+`luna.yaml`:
 
 - **MX4SIO** SD storage (`mode: mx4sio`). This mode must be enabled explicitly
   and makes MMCE devices unavailable while active.
@@ -182,7 +182,7 @@ both the NHDDL-derived frontend and the Neutrino-derived game runtime.
 | Orbit view | A depth-sorted ring of covers with perspective, fading, shared artwork caching, and a Square-button Random Scan that avoids reselecting the current title. |
 | Favorites | Per-drive Favorites stored in `/LUNA/favorites.txt`, shared by Classic and Collection without modifying the game library. |
 | Artwork | OPL-compatible covers plus optional disc labels and PSBBN-style square artwork, with view-specific caching and GS VRAM recovery. |
-| Configured storage scan | The library accepts ATA, HDL, and USB devices. The shipped configuration uses internal ATA/exFAT and avoids waiting for a nonexistent second mass-storage device. |
+| Configured storage scan | The library scans ATA and HDL when available. USB, MX4SIO, MMCE, iLink, and UDPFS require explicit `mode:` entries. The shipped configuration uses internal ATA/exFAT and avoids waiting for a nonexistent second mass-storage device. |
 | Safer persistent state | LUNA writes cache, last-title, global options, and per-title settings under `/LUNA`, reads legacy `/nhddl` state as a fallback, bounds stored paths, and replaces key files only after a complete temporary write. |
 | FMCB deployment | The frontend and runtime can live together at `mc0:/APP_LUNA` while each hard drive retains its own artwork, cache, settings, and Favorites. |
 | In-game return | **Work in progress.** ~~The planned LUNA Neutrino runtime will recognize a held controller combination and return directly to a configured memory-card ELF or through the HDD/browser boot chain.~~ |
@@ -214,6 +214,8 @@ The four library views are shown below. The previews use sample game artwork.
 - **Square in Classic:** add or remove the selected game from Favorites.
 - **Select in Classic or Collection:** switch between the full library and
   Favorites.
+- **Collection:** tap Left/Up or Right/Down for one cover, or hold to browse.
+  Hold L2/R2 to fast scan; quick L2/R2 presses and L1/R1 have no Collection action.
 - **Square in Orbit:** start Random Scan. Any deliberate navigation
   input cancels it.
 - **L1/L2 or R1/R2 in Grid:** tap for one page or hold for fast-track paging.

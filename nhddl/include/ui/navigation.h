@@ -34,11 +34,11 @@
 
 typedef enum {
   COLLECTION_IDLE, COLLECTION_STEP, COLLECTION_BROWSE,
-  COLLECTION_SCAN, COLLECTION_SETTLE, COLLECTION_JUMP
+  COLLECTION_SCAN, COLLECTION_SETTLE
 } LunaCollectionMode;
 
 typedef struct {
-  int initialized, focus, direction, shoulder, travelDirection;
+  int initialized, focus, direction, scanHeld, travelDirection;
   float position, velocity, target, startPosition, startVelocity, speedBlend;
   uint32_t lastMs, heldMs, motionMs, durationMs, scanLabelMs;
   LunaCollectionMode mode;
@@ -46,10 +46,9 @@ typedef struct {
 
 void lunaCollectionReset(LunaCollectionMotion *state, int focus, uint32_t now);
 void lunaCollectionUpdate(LunaCollectionMotion *state, int total, int direction,
-                          int shoulder, int pageSize, uint32_t now);
+                          int scanHeld, uint32_t now);
 void lunaCollectionBrake(LunaCollectionMotion *state);
 int lunaCollectionOffset(const LunaCollectionMotion *state);
-int lunaCollectionPage(int total, int index, int direction, int pageSize);
 void lunaCollectionCacheLayout(int total, int focus, int offset, int *targets);
 
 typedef struct {

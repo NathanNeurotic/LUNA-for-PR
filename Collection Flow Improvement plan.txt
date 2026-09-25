@@ -6,6 +6,10 @@ approved the visual result, including the view-switch loading correction.
 Promoted locally to dist/LUNA-Release-Candidate.elf and dist/LUNA-FMCB-mc0.zip;
 package verification passed. Physical-console performance remains unverified.
 
+Later control revision: Collection now leaves L1/R1 unused. A quick L2/R2
+press does nothing; holding L2/R2 for about 450 ms starts fast scan without an
+initial chunk jump. The initial control proposal below is retained as history.
+
 PURPOSE
 
 Improve Collection browsing with precise single steps, continuous held movement,

@@ -48,18 +48,8 @@ void lunaCollectionBrake(LunaCollectionMotion *s) {
   collectionAnimate(s, (float)landing, COLLECTION_SETTLE, duration);
 }
 
-int lunaCollectionPage(int total, int index, int direction, int pageSize) {
-  if (total <= 1 || !direction) return total > 0 ? index : -1;
-  if (direction > 0) {
-    if (index == total - 1) return 0;
-    return index + pageSize < total ? index + pageSize : total - 1;
-  }
-  if (index == 0) return total - 1;
-  return index > pageSize ? index - pageSize : 0;
-}
-
 void lunaCollectionUpdate(LunaCollectionMotion *s, int total, int direction,
-                          int shoulder, int pageSize, uint32_t now) {
+                          int scanHeld, uint32_t now) {
   uint32_t elapsed = now - s->lastMs;
   s->lastMs = now;
   if (elapsed > 32) elapsed = 32; // Discard stall time, never fast-forward art.
@@ -67,18 +57,21 @@ void lunaCollectionUpdate(LunaCollectionMotion *s, int total, int direction,
     lunaCollectionReset(s, total ? 0 : -1, now);
     return;
   }
-  if (direction != s->direction || shoulder != s->shoulder) {
+  if (direction != s->direction || scanHeld != s->scanHeld) {
     int previousDirection = s->direction;
+    int previousScanHeld = s->scanHeld;
     s->direction = direction;
-    s->shoulder = shoulder;
+    s->scanHeld = scanHeld;
     s->heldMs = 0;
     if (direction) {
       s->travelDirection = direction;
-      if (shoulder) {
-        s->focus = lunaCollectionPage(total, s->focus, direction, pageSize);
-        s->position = -direction * 0.35f;
-        s->velocity = 0;
-        collectionAnimate(s, 0, COLLECTION_JUMP, COLLECTION_SETTLE_MS);
+      if (scanHeld) {
+        // L2/R2 taps are inert. A held scan starts only after the threshold,
+        // without first jumping over any titles.
+        if (s->mode == COLLECTION_SCAN && previousScanHeld)
+          s->heldMs = COLLECTION_SCAN_HOLD_MS; // Keep scanning on reversal.
+        else if (s->mode == COLLECTION_BROWSE)
+          lunaCollectionBrake(s);
       } else if (s->mode == COLLECTION_BROWSE || s->mode == COLLECTION_SCAN) {
         // Preserve velocity through a live reversal; acceleration brakes it.
         s->mode = COLLECTION_BROWSE;
@@ -99,9 +92,9 @@ void lunaCollectionUpdate(LunaCollectionMotion *s, int total, int direction,
     float dt = step / 1000.0f;
     elapsed -= step;
     if (direction && s->heldMs < 10000) s->heldMs += step;
-    if (direction && shoulder == 1 && s->heldMs >= COLLECTION_SCAN_HOLD_MS)
+    if (direction && scanHeld && s->heldMs >= COLLECTION_SCAN_HOLD_MS)
       s->mode = COLLECTION_SCAN;
-    else if (direction && !shoulder && s->heldMs >= COLLECTION_HOLD_MS)
+    else if (direction && !scanHeld && s->heldMs >= COLLECTION_HOLD_MS)
       s->mode = COLLECTION_BROWSE;
 
     if (s->mode == COLLECTION_SCAN || s->mode == COLLECTION_BROWSE) {

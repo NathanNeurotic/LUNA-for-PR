@@ -34,8 +34,11 @@ static const char legacyRootFallbackPath[] = "/nhddl/nhddl.yaml";
 #define OPTION_NO_INIT "noinit"
 #define OPTION_RETURN_PATH "return_path"
 
-// LUNA scans configured ATA, HDL, and USB game libraries.
-#define LUNA_LIBRARY_MODES (MODE_ATA | MODE_HDL | MODE_USB)
+// ATA and HDL retain their existing scan behavior. Other library sources
+// require an explicit mode entry in the options file.
+#define LUNA_LIBRARY_DEFAULT_MODES (MODE_ATA | MODE_HDL)
+#define LUNA_LIBRARY_OPT_IN_MODES (MODE_USB | MODE_MX4SIO | MODE_MMCE | MODE_ILINK | MODE_UDPFS)
+static ModeType configuredLibraryModes = MODE_NONE;
 
 #ifndef GIT_VERSION
 #define GIT_VERSION "v-0.0.0-unknown"
@@ -114,9 +117,10 @@ int main(int argc, char *argv[]) {
     if (deviceModeMap[i].scan == NULL)
       continue;
 
-    // Only add games from supported library devices.
-    if (!(deviceModeMap[i].mode & LUNA_LIBRARY_MODES)) {
-      DPRINTF("Skipping unsupported library device %s\n", deviceModeMap[i].mountpoint);
+    // Only scan optional storage modes selected in the options file. The
+    // runtime mode can also include drivers loaded to access the boot path.
+    if (!(deviceModeMap[i].mode & (LUNA_LIBRARY_DEFAULT_MODES | configuredLibraryModes))) {
+      DPRINTF("Skipping unconfigured library device %s\n", deviceModeMap[i].mountpoint);
       continue;
     }
 
@@ -392,7 +396,9 @@ int loadOptions(char *cwdPath) {
         LAUNCHER_OPTIONS.vmode = parseVMode(arg->value);
       } else if (strcmp(OPTION_MODE, arg->arg) == 0) {
         printf("Using mode %s\n", arg->value);
-        LAUNCHER_OPTIONS.mode |= parseMode(arg->value);
+        ModeType mode = parseMode(arg->value);
+        LAUNCHER_OPTIONS.mode |= mode;
+        configuredLibraryModes |= mode & LUNA_LIBRARY_OPT_IN_MODES;
       } else if (strcmp(OPTION_UDPFS_IP, arg->arg) == 0) {
         printf("Using UDPFS IP %s\n", arg->value);
         strlcpy(LAUNCHER_OPTIONS.udpfsIp, arg->value, sizeof(LAUNCHER_OPTIONS.udpfsIp));

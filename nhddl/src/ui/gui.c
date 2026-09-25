@@ -763,7 +763,7 @@ int uiLoop(TargetList *titles) {
       uint32_t now = uiNowMs();
       // Scan remains responsive even on cold storage. During ordinary motion
       // prepare at most one cover every 90 ms; idle fills one slot per frame.
-      int allowLoad = !fast && !(collectionMotion.shoulder == 1 && collectionMotion.direction) &&
+      int allowLoad = !fast && !(collectionMotion.scanHeld && collectionMotion.direction) &&
                       (collectionMotion.mode == COLLECTION_IDLE || now - collectionLastArtMs >= 90);
       if (refreshCollectionCovers(flowTitles, collectionMotion.focus, flowOffset,
                                   collectionMotion.travelDirection, allowLoad, fast))
@@ -1165,11 +1165,10 @@ int uiLoop(TargetList *titles) {
                              PAD_L1 | PAD_R1 | PAD_L2 | PAD_R2;
       int left = (rawInput & (PAD_LEFT | PAD_UP)) != 0;
       int right = (rawInput & (PAD_RIGHT | PAD_DOWN)) != 0;
-      int shoulder = 0;
-      if (rawInput & (PAD_L1 | PAD_R1 | PAD_L2 | PAD_R2)) {
-        left = (rawInput & (PAD_L1 | PAD_L2)) != 0;
-        right = (rawInput & (PAD_R1 | PAD_R2)) != 0;
-        shoulder = (rawInput & (PAD_L1 | PAD_R1)) ? 1 : 2;
+      int scanHeld = (rawInput & (PAD_L2 | PAD_R2)) != 0;
+      if (scanHeld) {
+        left = (rawInput & PAD_L2) != 0;
+        right = (rawInput & PAD_R2) != 0;
       }
       int direction = right == left ? 0 : (right ? 1 : -1);
       int total = collectionFavoritesOnly ? favoriteTitles->total : titles->total;
@@ -1182,8 +1181,8 @@ int uiLoop(TargetList *titles) {
         if (left && right && collectionMotion.mode != COLLECTION_SETTLE &&
             collectionMotion.mode != COLLECTION_IDLE)
           lunaCollectionBrake(&collectionMotion);
-        lunaCollectionUpdate(&collectionMotion, total, direction, shoulder,
-                              maxTitlesPerPage, uiNowMs());
+        lunaCollectionUpdate(&collectionMotion, total, direction, scanHeld,
+                              uiNowMs());
       }
       if (total > 0) {
         selectedTitleIdx = collectionFavoritesOnly
